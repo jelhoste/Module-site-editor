@@ -526,4 +526,1650 @@ input, textarea, select { font-family: var(--font-sans); }
 .mod-content a[data-block-link] { color: inherit; text-decoration: none; display: block; }
 
 /* ── Module Partition (Sheet) — couleurs fixes (identiques light/dark) ── */
-.mod-sheet { padding: 0
+.mod-sheet { padding: 0; color-scheme: light; }
+.sm-title { font-size: 17px; font-weight: 600; color: #1A1C22; margin-bottom: 10px; }
+.sm-staff-view {
+  background: #fff; border: 1px solid #ddd;
+  border-radius: 8px; min-height: 60px; overflow: hidden; position: relative;
+  color: #000;  /* force currentColor → noir pour le SVG abcjs */
+}
+.sm-staff-wrapper {
+  background: #fff; border-radius: 8px; border: 1px solid #ddd;
+  min-height: 55px; overflow: hidden; position: relative;
+  display: flex; align-items: center; justify-content: center;
+  color: #000;
+}
+.sm-staff-view svg,
+.sm-staff-wrapper svg { display: block; width: 100% !important; }
+/* Curseur et surlignage lecture */
+.sm-staff-view svg .sm-cursor-line,
+.sm-staff-wrapper svg .sm-cursor-line { stroke: rgba(21,101,192,.65) !important; fill: none !important; stroke-width: 2.5px !important; }
+.sm-staff-view svg .sm-playing *,
+.sm-staff-wrapper svg .sm-playing *   { fill: #1565C0 !important; stroke: none !important; }
+/* Notes cliquables dans l'éditeur */
+#sm-user-staff .abcjs-note { cursor: pointer; }
+#sm-user-staff .abcjs-bar  { cursor: pointer; }
+.sm-staff-placeholder { text-align: center; padding: 24px; color: #777; font-size: 13px; line-height: 1.8; }
+
+/* Bouton ▶ overlay */
+.sm-play-btn {
+  position: absolute; bottom: 8px; right: 8px; z-index: 20;
+  width: 40px; height: 40px; border-radius: 50%;
+  background: #1565C0; color: #fff;
+  border: none; font-size: 1rem; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,.28);
+  transition: transform 120ms;
+}
+.sm-play-btn:hover { transform: scale(1.08); background: #0d47a1; }
+.sm-play-btn[data-playing="1"] { background: #0d47a1; }
+
+/* Ligne de contrôles (transpose + tempo) — fond fixe */
+.sm-controls-row {
+  display: flex; align-items: center; gap: 6px;
+  margin-top: 7px;
+  background: #f5f5f5; border-radius: 8px; padding: 6px 10px;
+  flex-wrap: wrap;
+}
+.sm-ctrl-sep { width: 1px; height: 20px; background: #ddd; margin: 0 2px; flex-shrink: 0; }
+.sm-tp-btn {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: #e8e8e8; border: 1px solid #ccc;
+  color: #333; font-size: 13px; font-weight: 700;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: background 100ms; flex-shrink: 0; touch-action: manipulation;
+}
+.sm-tp-btn:hover { background: #dce8f5; border-color: #1565C0; color: #1565C0; }
+.sm-tp-reset { font-size: 14px; }
+.sm-tp-val {
+  font-size: 11px; font-weight: 700; color: #1565C0;
+  min-width: 32px; text-align: center; font-family: monospace; flex-shrink: 0;
+}
+.sm-tempo-step {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: #e8e8e8; border: 1px solid #ccc;
+  color: #333; font-size: 20px; font-weight: 300; line-height: 1;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: background 100ms; flex-shrink: 0; touch-action: manipulation;
+}
+.sm-tempo-step:hover { background: #dce8f5; border-color: #1565C0; color: #1565C0; }
+.sm-tempo-val {
+  font-size: 12px; font-weight: 700; color: #1565C0;
+  min-width: 58px; text-align: center; font-family: monospace; flex-shrink: 0;
+}
+.sm-loop-btn {
+  width: 30px; height: 30px; border-radius: 50%;
+  background: #e8e8e8; border: 1px solid #ccc;
+  font-size: 13px; cursor: pointer; display: flex;
+  align-items: center; justify-content: center;
+  flex-shrink: 0; opacity: 0.45; transition: opacity 120ms, background 120ms;
+  touch-action: manipulation;
+}
+.sm-loop-btn:hover { opacity: 0.75; }
+.sm-loop-btn.active { opacity: 1; background: #dce8f5; border-color: #1565C0; }
+
+/* ── Modale éditeur partition ─────────────────────────── */
+#modal-sheet .modal { max-width: 740px; width: 95vw; max-height: 92vh; display: flex; flex-direction: column; }
+.sm-modal-body { flex:1; overflow-y:auto; padding: 0 20px 16px; display: flex; flex-direction: column; gap: 8px; }
+.sm-mode-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding-top: 4px; }
+.sm-staff-mode-btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--c-surface-1); border: 1px solid var(--c-outline-v);
+  border-radius: 8px; padding: 7px 14px; cursor: pointer; font-size: 12px; font-weight: 600;
+  color: var(--c-on-surface-v); transition: background 120ms;
+}
+.sm-staff-mode-btn:hover { background: var(--c-primary-cont); border-color: var(--c-primary); color: var(--c-primary); }
+.sm-toolbar { display: flex; align-items: center; gap: 3px; flex-wrap: wrap; }
+.sm-toolbar-sep { width:1px; height:22px; background:var(--c-outline-v); margin:0 3px; flex-shrink:0; }
+.sm-btn-dur, .sm-btn-alt {
+  min-width:40px; min-height:40px; padding:4px 8px;
+  background:var(--c-surface-1); border:1px solid var(--c-outline-v); border-radius:6px;
+  font-size:1.1rem; display:inline-flex; align-items:center; justify-content:center;
+  cursor:pointer; transition:background 100ms; line-height:1; touch-action:manipulation;
+}
+.sm-btn-dur:hover, .sm-btn-alt:hover { background: var(--c-surface-2); }
+.sm-btn-dur.active, .sm-btn-alt.active {
+  background: var(--c-primary-cont); border: 2px solid var(--c-primary); color: var(--c-primary); font-weight: 700;
+}
+.sm-alt-status { font-size:11px; color:var(--c-on-surface-v); min-width:16px; }
+.sm-alt-status.active { color:var(--c-primary); font-weight:700; }
+.sm-click-overlay { position:absolute; inset:0; cursor:crosshair; z-index:10; border-radius:8px; }
+.sm-ghost-note {
+  position:absolute; width:18px; height:11px; background:rgba(74,124,89,.35);
+  border:2px solid rgba(74,124,89,.85); border-radius:50%; pointer-events:none;
+  display:none; transform:translate(-50%,-50%); z-index:11; transition:top .04s;
+}
+.sm-ghost-ledger { position:absolute; height:1.5px; background:rgba(74,124,89,.6); pointer-events:none; display:none; z-index:11; transform:translateY(-50%); }
+.sm-ghost-label {
+  position:absolute; background:var(--c-primary); color:#fff; padding:2px 7px;
+  border-radius:100px; font-size:10px; font-weight:600; pointer-events:none;
+  display:none; z-index:12; white-space:nowrap;
+}
+.sm-actions-row { display:flex; gap:5px; align-items:center; flex-wrap:wrap; }
+.sm-action-btn {
+  display:inline-flex; align-items:center; gap:4px;
+  background:var(--c-surface-1); border:1px solid var(--c-outline-v); border-radius:100px;
+  padding:5px 12px; font-size:11px; font-weight:500; color:var(--c-on-surface-v);
+  cursor:pointer; white-space:nowrap; transition:background 120ms;
+}
+.sm-action-btn:hover { background:var(--c-surface-2); }
+/* Menu barline popup */
+.sm-bm-item {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  padding: 7px 10px; font-size: 12px; border: none; border-radius: 6px;
+  background: transparent; color: var(--c-on-surface); cursor: pointer; text-align: left;
+  transition: background 100ms; white-space: nowrap;
+}
+.sm-bm-item:hover { background: var(--c-surface-2); }
+.sm-bm-item small { color: var(--c-on-surface-v); font-size: 10px; margin-left: 2px; }
+.sm-bm-sym { font-size: 18px; min-width: 24px; text-align: center; line-height: 1; }
+/* Barline sélectionnée (surlignage) */
+.sm-barline-selected { outline: 2px solid #1565C0 !important; outline-offset: 2px; }
+.sm-note-seq {
+  font-family:monospace; font-size:10px; color:var(--c-on-surface-v);
+  padding:5px 8px; background:var(--c-surface-1); border-radius:6px;
+  min-height:20px; flex:1; word-break:break-all;
+}
+.sm-octave-ctrl { display:flex; align-items:center; gap:3px; background:var(--c-surface-1); border-radius:100px; padding:2px 4px; }
+.sm-octave-ctrl button { width:30px; height:30px; border-radius:50%; background:transparent; color:var(--c-primary); font-size:1rem; display:flex; align-items:center; justify-content:center; }
+.sm-octave-ctrl button:hover { background:var(--c-primary-cont); }
+#sm-octave-display { font-size:14px; font-weight:700; color:var(--c-primary); min-width:20px; text-align:center; }
+
+/* Grille de padding 3×3 — steppers tactiles */
+.pp-padding-grid {
+  display: grid; grid-template-columns: 1fr 52px 1fr;
+  grid-template-rows: repeat(3, auto);
+  gap: 6px; align-items: center; margin-top: 6px;
+}
+.pp-pad-cell {
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+}
+.pp-pad-label { font-size: 9px; font-weight: 600; text-transform: uppercase; color: var(--c-on-surface-v); }
+.pp-pad-stepper {
+  display: flex; align-items: center; gap: 0;
+  border: 1.5px solid var(--c-outline-v); border-radius: 7px;
+  overflow: hidden; background: var(--c-surface-1);
+}
+.pp-pad-step {
+  width: 28px; height: 32px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: transparent; color: var(--c-on-surface-v);
+  font-size: 15px; font-weight: 500; line-height: 1;
+  border: none; transition: background 100ms, color 100ms;
+  touch-action: manipulation; user-select: none;
+}
+.pp-pad-step:hover { background: var(--c-surface-2); color: var(--c-primary); }
+.pp-pad-step:active { background: var(--c-primary-cont); }
+.pp-pad-val {
+  min-width: 30px; text-align: center; font-size: 13px; font-weight: 600;
+  color: var(--c-on-surface); border: none; background: transparent;
+  padding: 0 2px; outline: none;
+  -moz-appearance: textfield;
+}
+.pp-pad-val::-webkit-outer-spin-button,
+.pp-pad-val::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.pp-pad-center { display: flex; align-items: center; justify-content: center; width: 36px; height: 36px;
+  border: 1.5px dashed var(--c-outline); border-radius: 6px; margin: auto; }
+
+/* Liste des boutons carrés dans les props */
+.sq-btn-row {
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px 8px; border-radius: 6px;
+  background: var(--c-surface-1); border: 1px solid var(--c-outline-v);
+  margin-bottom: 4px;
+}
+.sq-btn-row .ms { font-size: 16px; color: var(--c-on-surface-v); }
+.sq-btn-icon-input {
+  width: 90px; font-size: 12px; padding: 3px 6px;
+  border: 1px solid var(--c-outline-v); border-radius: 4px;
+  background: var(--c-surface); color: var(--c-on-surface);
+}
+.sq-btn-url-input {
+  flex: 1; font-size: 11px; padding: 3px 6px;
+  border: 1px solid var(--c-outline-v); border-radius: 4px;
+  background: var(--c-surface); color: var(--c-on-surface);
+}
+.sq-side-badge {
+  font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em;
+  padding: 2px 5px; border-radius: 4px;
+  background: var(--c-primary-cont); color: var(--c-primary);
+  white-space: nowrap; flex-shrink: 0;
+}
+.sq-remove-btn {
+  width: 20px; height: 20px; border-radius: 4px; flex-shrink: 0;
+  background: transparent; color: var(--c-error); font-size: 14px;
+  display: flex; align-items: center; justify-content: center;
+}
+.sq-remove-btn:hover { background: rgba(179,38,30,.08); }
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 16px 12px;
+  border-bottom: 1px solid var(--c-outline-v);
+}
+.pp-header h3 { font-size: 14px; font-weight: 600; color: var(--c-on-surface); }
+.pp-close {
+  padding: 4px; border-radius: 50%; background: transparent;
+  color: var(--c-on-surface-v); transition: background var(--transition);
+}
+.pp-close:hover { background: var(--c-surface-2); }
+.pp-body { padding: 16px; display: flex; flex-direction: column; gap: 14px; overflow-y: auto; flex: 1; }
+.pp-group { display: flex; flex-direction: column; gap: 6px; }
+.pp-label {
+  font-size: 11px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: .07em; color: var(--c-on-surface-v);
+}
+.pp-input {
+  padding: 8px 10px; border-radius: var(--radius-sm);
+  border: 1.5px solid var(--c-outline-v);
+  background: var(--c-surface-1); color: var(--c-on-surface);
+  font-size: 13px; width: 100%;
+  transition: border-color var(--transition), background var(--transition);
+}
+.pp-input:focus { outline: none; border-color: var(--c-primary); }
+.pp-textarea { resize: vertical; min-height: 70px; }
+.pp-row { display: flex; gap: 8px; }
+.pp-row .pp-input { flex: 1; }
+.pp-select {
+  padding: 8px 10px; border-radius: var(--radius-sm);
+  border: 1.5px solid var(--c-outline-v);
+  background: var(--c-surface-1); color: var(--c-on-surface);
+  font-size: 13px; width: 100%; cursor: pointer;
+  transition: border-color var(--transition), background var(--transition);
+}
+.pp-select:focus { outline: none; border-color: var(--c-primary); }
+.pp-color-row { display: flex; align-items: center; gap: 8px; }
+.pp-color { width: 36px; height: 36px; border-radius: var(--radius-sm); border: 1.5px solid var(--c-outline-v); cursor: pointer; }
+.pp-toggle { display: flex; background: var(--c-surface-2); border-radius: var(--radius-sm); overflow: hidden; }
+.pp-toggle-btn { flex: 1; padding: 7px; font-size: 12px; font-weight: 500;
+                  background: transparent; color: var(--c-on-surface-v);
+                  transition: background var(--transition), color var(--transition); }
+.pp-toggle-btn.active { background: var(--c-primary); color: #fff; }
+.pp-slider { width: 100%; accent-color: var(--c-primary); cursor: pointer; }
+.pp-btn-action {
+  padding: 8px 14px; border-radius: var(--radius-sm);
+  background: var(--c-primary); color: #fff;
+  font-size: 13px; font-weight: 600;
+  width: 100%; transition: opacity var(--transition);
+}
+.pp-btn-action:hover { opacity: .85; }
+.pp-btn-danger {
+  padding: 8px 14px; border-radius: var(--radius-sm);
+  background: transparent; color: var(--c-error);
+  border: 1.5px solid var(--c-error);
+  font-size: 13px; font-weight: 600;
+  width: 100%; transition: background var(--transition);
+}
+.pp-btn-danger:hover { background: rgba(179,38,30,.08); }
+
+/* ═══════════════════════════════════════════════════════════
+   MODULES — styles dans le canvas
+═══════════════════════════════════════════════════════════ */
+.sf-module {
+  position: relative;
+  outline: 2px solid transparent;
+  transition: outline-color 150ms;
+}
+.sf-module:hover { outline-color: var(--c-primary); }
+.sf-module.selected { outline-color: var(--c-primary); outline-width: 2px; }
+
+/* Barre d'outils module — ultra-compacte, carrée, icône + micro-texte */
+.module-toolbar {
+  position: absolute; top: 0; right: 0; z-index: 50;
+  display: none; align-items: center; gap: 2px;
+  background: #1e2128;
+  border-radius: 0 0 0 6px;
+  padding: 3px 4px;
+  box-shadow: 0 2px 8px rgba(0,0,0,.28);
+}
+.sf-module:hover .module-toolbar,
+.sf-module.selected .module-toolbar { display: flex; }
+
+.mt-btn {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  width: 28px; height: 26px;
+  border-radius: 4px; background: transparent;
+  color: rgba(255,255,255,.75);
+  transition: background 100ms, color 100ms;
+  gap: 1px; flex-shrink: 0;
+}
+.mt-btn:hover { background: rgba(255,255,255,.16); color: #fff; }
+.mt-btn .ms  { font-size: 13px; line-height: 1; }
+.mt-btn .mt-label {
+  font-size: 8px; font-weight: 600; line-height: 1;
+  font-family: var(--font-sans); text-transform: uppercase;
+  letter-spacing: .03em; opacity: .8;
+}
+.mt-btn.danger { color: rgba(255,130,110,.85); }
+.mt-btn.danger:hover { background: rgba(255,80,60,.25); color: #ff8a80; }
+
+/* Séparateur fin dans la toolbar */
+.mt-sep { width: 1px; height: 16px; background: rgba(255,255,255,.18); margin: 0 1px; flex-shrink: 0; }
+
+/* Poignée de drag */
+.drag-handle { cursor: grab; }
+.drag-handle:active { cursor: grabbing; }
+
+/* ── MODULE : Bandeau Hero ── */
+.mod-banner {
+  width: 100%; position: relative; overflow: hidden;
+  background: var(--mod-bg, var(--c-primary));
+  height: var(--mod-h, 280px);
+  display: flex; align-items: center; justify-content: center;
+}
+.mod-banner .banner-bg-img {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0;
+}
+.mod-banner .banner-overlay {
+  position: absolute; inset: 0; z-index: 1;
+  background: var(--mod-overlay, rgba(0,0,0,.35));
+}
+.mod-banner .banner-content {
+  position: relative; z-index: 2; text-align: center;
+  padding: 20px 5%; max-width: 900px; width: 100%;
+}
+.mod-banner .banner-title {
+  font-family: var(--font-display);
+  font-size: clamp(22px, 4vw, 56px); font-weight: 400;
+  color: var(--mod-text-color, #fff);
+  line-height: 1.15; margin-bottom: 12px;
+}
+.mod-banner .banner-subtitle {
+  font-size: clamp(13px, 2vw, 20px); font-weight: 300;
+  color: var(--mod-text-color-sub, rgba(255,255,255,.9));
+  margin-bottom: 20px; max-width: 620px; margin-left: auto; margin-right: auto;
+}
+.mod-banner .banner-subtitle:empty { display: none; margin: 0; }
+.mod-banner .banner-cta {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 11px 26px; border-radius: 50px;
+  background: var(--mod-btn-bg, #fff);
+  color: var(--mod-btn-color, var(--c-primary));
+  font-size: 14px; font-weight: 600;
+  text-decoration: none; cursor: pointer; border: none;
+  transition: opacity var(--transition), transform var(--transition);
+}
+.mod-banner .banner-cta:hover { opacity: .85; transform: translateY(-1px); }
+
+/* Boutons carrés latéraux dans le bandeau */
+.banner-sq-zone {
+  position: absolute; top: 50%; transform: translateY(-50%);
+  z-index: 3; display: flex; flex-direction: row; gap: 6px;
+  padding: 0 12px;
+}
+.banner-sq-zone.left  { left: 0; }
+.banner-sq-zone.right { right: 0; }
+.banner-sq-btn {
+  width: 40px; height: 40px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 6px;
+  background: rgba(255,255,255,.18);
+  color: #fff;
+  border: 1.5px solid rgba(255,255,255,.35);
+  backdrop-filter: blur(6px);
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 150ms, transform 150ms;
+  font-size: 20px;
+}
+.banner-sq-btn:hover { background: rgba(255,255,255,.32); transform: scale(1.08); }
+.banner-sq-btn .ms { font-size: 20px; pointer-events: none; }
+/* Style alternatif : solide */
+.banner-sq-btn.solid {
+  background: rgba(0,0,0,.45); border-color: transparent;
+}
+/* Style alternatif : primaire */
+.banner-sq-btn.primary {
+  background: var(--c-primary); border-color: transparent;
+}
+
+/* ── MODULE : Titre ── */
+/* ── Navbar ── */
+.mod-navbar { width:100%; position:relative; background:var(--nb-bg,var(--c-surface)); box-shadow:var(--nb-shadow,0 1px 4px rgba(0,0,0,.10)); z-index:100; }
+.mod-navbar.sticky { position:sticky; top:0; }
+.mod-navbar.hide-on-scroll { position:sticky; top:0; transition:transform .3s ease; }
+.mod-navbar.hide-on-scroll.nb-hidden { transform:translateY(-100%); }
+.nb-inner { display:flex; align-items:center; gap:16px; padding:var(--nb-pad-v,12px) var(--nb-pad-h,24px); max-width:var(--nb-max-w,none); margin:0 auto; }
+.nb-logo { font-family:var(--font-display); font-size:20px; font-weight:600; color:var(--nb-text,var(--c-on-surface)); text-decoration:none; white-space:nowrap; flex-shrink:0; display:flex; align-items:center; gap:8px; }
+.nb-logo img { height:36px; width:auto; }
+.nb-links { display:flex; align-items:center; gap:4px; flex:1; }
+.nb-links.center { justify-content:center; }
+.nb-links.right  { justify-content:flex-end; }
+.nb-link { padding:6px 14px; border-radius:6px; font-size:14px; font-weight:500; color:var(--nb-text,var(--c-on-surface)); text-decoration:none; white-space:nowrap; transition:background .15s; background:transparent; border:none; cursor:pointer; }
+.nb-link:hover { background:rgba(0,0,0,.06); }
+.nb-cta { flex-shrink:0; padding:8px 20px; border-radius:50px; font-size:14px; font-weight:600; background:var(--c-primary); color:#fff; text-decoration:none; border:none; cursor:pointer; white-space:nowrap; }
+.nb-hamburger { display:none; flex-direction:column; gap:5px; background:none; border:none; cursor:pointer; padding:4px; margin-left:auto; }
+.nb-hamburger span { display:block; width:22px; height:2px; background:var(--nb-text,var(--c-on-surface)); border-radius:2px; }
+.nb-drawer { display:none; flex-direction:column; gap:2px; padding:8px 16px 16px; border-top:1px solid var(--c-outline-v); }
+.nb-drawer.open { display:flex; }
+.nb-drawer .nb-link { width:100%; }
+.nb-drawer .nb-cta { margin:8px 0 0; text-align:center; width:100%; display:block; }
+@media (max-width:767px) { .nb-hamburger{display:flex;} .nb-links,.nb-cta.nb-desktop{display:none;} }
+
+/* ── Navbar ── */
+.mod-navbar { width:100%; position:relative; background:var(--nb-bg,var(--c-surface)); box-shadow:var(--nb-shadow,0 1px 4px rgba(0,0,0,.10)); z-index:100; }
+.mod-navbar.sticky { position:sticky; top:0; }
+.mod-navbar.hide-on-scroll { position:sticky; top:0; transition:transform .3s ease; }
+.mod-navbar.hide-on-scroll.nb-hidden { transform:translateY(-100%); }
+.nb-inner { display:flex; align-items:center; gap:16px; padding:var(--nb-pad-v,12px) var(--nb-pad-h,24px); }
+.nb-logo { font-family:var(--font-display); font-size:20px; font-weight:600; color:var(--nb-text,var(--c-on-surface)); text-decoration:none; white-space:nowrap; flex-shrink:0; display:flex; align-items:center; gap:8px; }
+.nb-logo img { height:36px; width:auto; }
+.nb-links { display:flex; align-items:center; gap:4px; flex:1; }
+.nb-links.center { justify-content:center; }
+.nb-links.right  { justify-content:flex-end; }
+.nb-link { padding:6px 14px; border-radius:6px; font-size:14px; font-weight:500; color:var(--nb-text,var(--c-on-surface)); text-decoration:none; white-space:nowrap; transition:background .15s; background:transparent; border:none; cursor:pointer; }
+.nb-link:hover { background:rgba(0,0,0,.06); }
+.nb-cta { flex-shrink:0; padding:8px 20px; border-radius:50px; font-size:14px; font-weight:600; background:var(--c-primary); color:#fff; text-decoration:none; border:none; cursor:pointer; white-space:nowrap; }
+.nb-hamburger { display:none; flex-direction:column; gap:5px; background:none; border:none; cursor:pointer; padding:4px; margin-left:auto; }
+.nb-hamburger span { display:block; width:22px; height:2px; background:var(--nb-text,var(--c-on-surface)); border-radius:2px; }
+.nb-drawer { display:none; flex-direction:column; gap:2px; padding:8px 16px 16px; border-top:1px solid var(--c-outline-v); }
+.nb-drawer.open { display:flex; }
+.nb-drawer .nb-link { width:100%; }
+.nb-drawer .nb-cta { margin:8px 0 0; text-align:center; width:100%; display:block; }
+@media (max-width:767px) { .nb-hamburger{display:flex;} .nb-links,.nb-cta.nb-desktop{display:none;} }
+.mod-title { padding: 0; }
+.mod-title .title-el {
+  font-family: var(--font-display);
+  color: var(--mod-color, var(--c-on-surface));
+  line-height: 1.2;
+}
+.mod-title .title-el[data-level="1"] { font-size: clamp(28px, 4vw, 48px); }
+.mod-title .title-el[data-level="2"] { font-size: clamp(22px, 3vw, 36px); }
+.mod-title .title-el[data-level="3"] { font-size: clamp(18px, 2.5vw, 28px); }
+.mod-title .title-el[data-level="4"] { font-size: 20px; font-family: var(--font-sans); font-weight: 700; }
+.mod-title.center { text-align: center; }
+.mod-title.right { text-align: right; }
+.mod-title .title-underline { 
+  width: 60px; height: 4px; background: var(--c-primary); 
+  border-radius: 2px; margin-top: 10px;
+}
+.mod-title.center .title-underline { margin-left: auto; margin-right: auto; }
+
+/* ── MODULE : Paragraphe ── */
+.mod-paragraph { padding: 0; }
+.mod-paragraph p {
+  font-size: var(--mod-font-size, 16px);
+  line-height: 1.75;
+  color: var(--mod-color, var(--c-on-surface));
+  max-width: var(--mod-max-width, 720px);
+}
+.mod-paragraph.center { text-align: center; }
+.mod-paragraph.center p { margin-left: auto; margin-right: auto; }
+.mod-paragraph.right { text-align: right; }
+
+/* ── MODULE : Bouton ── */
+.mod-button { padding: 0; }
+.mod-button.center { text-align: center; }
+.mod-button.right { text-align: right; }
+.btn-el {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-family: var(--font-sans); font-weight: 600; font-size: 14px;
+  cursor: pointer; text-decoration: none; border: none;
+  transition: opacity var(--transition), transform var(--transition), box-shadow var(--transition);
+}
+.btn-el:hover { opacity: .85; transform: translateY(-1px); }
+.btn-el.filled { padding: 12px 24px; border-radius: 50px; background: var(--c-primary); color: #fff; }
+.btn-el.outlined { padding: 10px 22px; border-radius: 50px; background: transparent; color: var(--c-primary); border: 2px solid var(--c-primary); }
+.btn-el.text-btn { padding: 10px 16px; border-radius: var(--radius-sm); background: transparent; color: var(--c-primary); }
+.btn-el.elevated { padding: 12px 24px; border-radius: 50px; background: var(--c-surface); color: var(--c-primary); box-shadow: var(--shadow-2); }
+
+/* ── MODULE : Image ── */
+.mod-image { padding: 0; }
+.mod-image.center { text-align: center; }
+.mod-image img {
+  max-width: 100%; border-radius: var(--mod-radius, var(--radius-md));
+  box-shadow: var(--shadow-1);
+  display: inline-block;
+}
+.mod-image .img-caption {
+  font-size: 13px; color: var(--c-on-surface-v);
+  margin-top: 8px; font-style: italic;
+}
+
+/* ── MODULE : Pièce jointe ── */
+.mod-attachment-image img { max-width: 100%; border-radius: var(--mod-radius, var(--radius-md)); box-shadow: var(--shadow-1); display: block; }
+.att-card {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 16px; max-width: 420px;
+  border: 1.5px solid var(--c-outline-v); border-radius: var(--radius-md);
+  background: var(--c-surface-1); text-decoration: none; color: inherit;
+  transition: border-color var(--transition), background var(--transition);
+}
+.att-card:hover { border-color: var(--c-primary); background: var(--c-primary-cont); }
+.att-card-icon { font-size: 28px; color: var(--c-primary); flex-shrink: 0; }
+.att-card-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+.att-card-label { font-weight: 600; font-size: 14px; color: var(--c-on-surface); }
+.att-card-meta { font-size: 12px; color: var(--c-on-surface-v); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.att-card-dl { font-size: 20px; color: var(--c-on-surface-v); flex-shrink: 0; }
+
+/* ── MODULE : Diviseur ── */
+.mod-divider { padding: 0; }
+.mod-divider hr {
+  border: none; height: var(--mod-h, 1px);
+  background: var(--mod-color, var(--c-outline-v));
+  border-radius: 2px;
+}
+
+/* ── MODULE : Espace ── */
+.mod-spacer { height: var(--mod-h, 40px); }
+
+/* ── MODULE : YouTube ── */
+.mod-youtube { padding: 0; }
+.youtube-wrap {
+  position: relative; overflow: hidden;
+  border-radius: var(--radius-md);
+  aspect-ratio: 16/9; background: #000;
+  box-shadow: var(--shadow-2);
+}
+.youtube-wrap iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: none; }
+.youtube-placeholder {
+  position: absolute; inset: 0; display: flex;
+  flex-direction: column; align-items: center; justify-content: center;
+  gap: 12px; background: var(--c-surface-2); color: var(--c-on-surface-v);
+}
+.youtube-placeholder .ms { font-size: 48px; color: #FF0000; opacity: .7; }
+
+/* ── MODULE : Drive Embed ── */
+.mod-drive-embed { padding: 0; }
+.drive-wrap {
+  border-radius: var(--radius-md); overflow: hidden;
+  box-shadow: var(--shadow-2); background: var(--c-surface-1);
+}
+.drive-wrap iframe { width: 100%; border: none; display: block; height: 500px; }
+
+/* Zones de dépôt imbriquées (onglets, colonnes) */
+.nested-drop-zone {
+  min-height: 80px; padding: 6px;
+  border-radius: var(--radius-sm);
+  border: 1.5px dashed var(--c-outline);
+  transition: background var(--transition), border-color var(--transition);
+  position: relative;
+}
+.nested-drop-zone.drag-over {
+  background: var(--c-primary-cont);
+  border-color: var(--c-primary);
+  border-style: solid;
+}
+.nested-drop-zone::before {
+  content: '+ module';
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: .06em; color: var(--c-outline);
+  pointer-events: none;
+}
+.nested-drop-zone:has(.sf-module)::before { display: none; }
+/* Fallback si :has() non supporté */
+.nested-drop-zone.has-modules::before { display: none; }
+
+/* Modules dans zones imbriquées — toolbar plus discrète */
+.nested-drop-zone .sf-module { margin: 4px 0; }
+.nested-drop-zone .module-toolbar { top: -26px; }
+.nested-drop-zone .sf-module:first-child { margin-top: 0; }
+.mod-tabs { padding: 0; }
+
+/* Style commun aux deux variantes */
+.tabs-body { padding: 4px 0 8px; }
+.tab-pane { display: none; }
+.tab-pane.active { display: block; }
+.tab-canvas { min-height: 60px; }
+
+/* ── Variante PILL (capsule) ── */
+.tabs-header.style-pill {
+  display: inline-flex;
+  background: var(--c-surface-2);
+  border-radius: 10px;
+  padding: 4px; gap: 2px;
+  border: 1px solid var(--c-outline-v);
+  margin-bottom: 16px;
+  max-width: 100%; overflow-x: auto;
+  scrollbar-width: none;
+}
+.tabs-header.style-pill::-webkit-scrollbar { display: none; }
+.tabs-header.style-pill .tab-btn {
+  padding: 6px 18px; font-size: 13px; font-weight: 500;
+  border-radius: 7px; background: transparent;
+  color: var(--c-on-surface-v); border: none; white-space: nowrap;
+  transition: color var(--transition), background var(--transition), box-shadow var(--transition);
+}
+.tabs-header.style-pill .tab-btn:hover { color: var(--c-on-surface); background: rgba(255,255,255,.55); }
+.tabs-header.style-pill .tab-btn.active {
+  background: var(--c-surface); color: var(--c-primary); font-weight: 600;
+  box-shadow: 0 1px 4px rgba(0,0,0,.12), 0 0 0 1px rgba(0,0,0,.04);
+}
+
+/* ── Variante UNDERLINE (soulignée) ── */
+.tabs-header.style-underline {
+  display: flex;
+  border-bottom: 2px solid var(--c-outline-v);
+  gap: 0; overflow-x: auto; margin-bottom: 16px;
+  scrollbar-width: none;
+}
+.tabs-header.style-underline::-webkit-scrollbar { display: none; }
+.tabs-header.style-underline .tab-btn {
+  padding: 10px 20px; font-size: 14px; font-weight: 500;
+  background: transparent; color: var(--c-on-surface-v);
+  border: none; border-bottom: 2px solid transparent;
+  margin-bottom: -2px; white-space: nowrap;
+  transition: color var(--transition), border-color var(--transition);
+}
+.tabs-header.style-underline .tab-btn:hover { color: var(--c-on-surface); background: var(--c-surface-1); }
+.tabs-header.style-underline .tab-btn.active { color: var(--c-primary); border-bottom-color: var(--c-primary); font-weight: 600; }
+
+/* ── Variante CAROUSEL (un onglet à la fois, flèches + compteur) ── */
+.tabs-header.style-carousel {
+  display: flex; align-items: center; justify-content: center;
+  gap: 16px; margin-bottom: 16px; padding: 4px 0;
+}
+.tab-arrow {
+  display: flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px; flex-shrink: 0; border-radius: 50%; border: none;
+  background: var(--c-surface-2); color: var(--c-on-surface); cursor: pointer;
+  transition: background var(--transition);
+}
+.tab-arrow:hover { background: var(--c-surface-3); }
+.tab-arrow .ms { font-size: 20px; }
+.tab-carousel-info { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 120px; }
+.tab-carousel-title { font-weight: 600; font-size: 15px; color: var(--c-on-surface); text-align: center; }
+.tab-carousel-count { font-size: 12px; color: var(--c-on-surface-v); }
+
+/* ── MODULE : Colonnes ── */
+.mod-columns { }
+.cols-inner { display: flex; gap: 20px; align-items: flex-start; }
+.col-item { flex: 1; min-width: 0; }
+.col-drop {
+  min-height: 80px; padding: 12px;
+  border-radius: var(--radius-sm);
+  border: 1.5px dashed var(--c-outline-v);
+  transition: background var(--transition), border-color var(--transition);
+}
+.col-drop.drag-over { background: var(--c-primary-cont); border-color: var(--c-primary); }
+.col-resize-handle {
+  width: 8px; cursor: col-resize; background: transparent;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; align-self: stretch;
+}
+.col-resize-handle::after {
+  content: ''; width: 2px; height: 40px;
+  background: var(--c-outline); border-radius: 1px;
+}
+.col-resize-handle:hover::after { background: var(--c-primary); }
+
+/* ── MODULE : Citation ── */
+.mod-quote { padding: 0; }
+.quote-inner {
+  border-left: 4px solid var(--c-primary);
+  padding: 16px 20px 16px 24px;
+  background: var(--c-primary-cont);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+.quote-text {
+  font-family: var(--font-display); font-style: italic;
+  font-size: 18px; color: var(--c-on-surface); line-height: 1.6;
+}
+.quote-author {
+  font-size: 13px; font-weight: 600; color: var(--c-primary);
+  margin-top: 10px;
+}
+
+/* ── MODULE : Carte ── */
+.mod-card { padding: 0; }
+.card-inner {
+  background: var(--c-surface);
+  border: 1.5px solid var(--c-outline-v);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-2);
+  transition: background var(--transition);
+}
+.card-img { width: 100%; height: 200px; object-fit: cover; display: block; }
+.card-body { padding: 20px; }
+.card-title { font-size: 18px; font-weight: 700; color: var(--c-on-surface); margin-bottom: 8px; }
+.card-text { font-size: 14px; color: var(--c-on-surface-v); line-height: 1.6; }
+
+/* ═══════════════════════════════════════════════════════════
+   MODALS
+═══════════════════════════════════════════════════════════ */
+.modal-backdrop {
+  position: fixed; inset: 0; background: rgba(0,0,0,.45);
+  z-index: 500; display: flex; align-items: center; justify-content: center;
+  backdrop-filter: blur(3px); display: none;
+}
+.modal-backdrop.open { display: flex; }
+.modal {
+  background: var(--c-surface); border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-3); width: 90%; max-width: 520px;
+  max-height: 85vh; overflow-y: auto;
+  transition: background var(--transition);
+}
+.modal-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid var(--c-outline-v);
+}
+.modal-header h2 { font-size: 18px; font-weight: 700; color: var(--c-on-surface); }
+.modal-close {
+  padding: 6px; border-radius: 50%; background: transparent;
+  color: var(--c-on-surface-v); transition: background var(--transition);
+}
+.modal-close:hover { background: var(--c-surface-2); }
+.modal-body { padding: 20px 24px; display: flex; flex-direction: column; gap: 14px; }
+.modal-footer { padding: 12px 24px 20px; display: flex; gap: 10px; justify-content: flex-end; }
+.btn-primary {
+  padding: 10px 20px; border-radius: var(--radius-sm);
+  background: var(--c-primary); color: #fff;
+  font-size: 14px; font-weight: 600;
+  transition: opacity var(--transition);
+}
+.btn-primary:hover { opacity: .85; }
+.btn-ghost {
+  padding: 10px 20px; border-radius: var(--radius-sm);
+  background: transparent; color: var(--c-on-surface-v);
+  font-size: 14px; font-weight: 500; border: 1.5px solid var(--c-outline-v);
+  transition: background var(--transition);
+}
+.btn-ghost:hover { background: var(--c-surface-2); }
+
+/* Toast */
+#toast {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+  background: #1e2128; color: #e2e5ee;
+  padding: 12px 20px; border-radius: 50px;
+  font-size: 14px; font-weight: 500;
+  box-shadow: var(--shadow-3); z-index: 9999;
+  opacity: 0; transition: opacity 300ms;
+  pointer-events: none; white-space: nowrap;
+}
+#toast.show { opacity: 1; }
+
+/* File list in modals */
+.file-list { max-height: 260px; overflow-y: auto; border: 1px solid var(--c-outline-v); border-radius: var(--radius-sm); }
+.file-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px; cursor: pointer; font-size: 13px;
+  color: var(--c-on-surface); transition: background var(--transition);
+  border-bottom: 1px solid var(--c-outline-v);
+}
+.file-item:last-child { border-bottom: none; }
+.file-item:hover { background: var(--c-surface-2); }
+.file-item .ms { font-size: 18px; color: var(--c-primary); }
+
+/* Theme selector */
+.theme-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.theme-card {
+  padding: 14px 10px; border-radius: var(--radius-md);
+  border: 2px solid var(--c-outline-v); cursor: pointer;
+  text-align: center; font-size: 12px; font-weight: 600;
+  transition: border-color var(--transition);
+}
+.theme-card:hover, .theme-card.active { border-color: var(--c-primary); }
+.theme-swatch {
+  display: flex; gap: 3px; justify-content: center; margin-bottom: 8px;
+}
+.swatch { width: 14px; height: 14px; border-radius: 50%; }
+
+/* Scrollbar styling */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--c-outline); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--c-primary); }
+
+/* Editable elements */
+[contenteditable="true"] {
+  outline: none;
+  cursor: text;
+}
+[contenteditable="true"]:focus {
+  outline: 2px solid var(--c-primary);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Module drag ghost */
+.sortable-ghost { opacity: .3; background: var(--c-primary-cont) !important; }
+.sortable-chosen { z-index: 10; }
+</style>
+</head>
+<body data-theme="light">
+
+<!-- ═══════ TOPBAR ═══════════════════════════════════════════ -->
+<header id="topbar" role="banner">
+  <span class="brand">⬡ SiteForge</span>
+  <div class="tb-sep"></div>
+
+  <!-- Fichier -->
+  <div class="tb-group dropdown" id="dd-file">
+    <button class="tb-btn" onclick="toggleDD('dd-file')" title="Fichier" aria-label="Menu Fichier">
+      <span class="ms">folder_open</span><span class="tb-chevron ms">expand_more</span>
+    </button>
+    <div class="dropdown-menu" id="dd-file-menu">
+      <div class="dm-title">Projet</div>
+      <div class="dm-item" onclick="newProject()"><span class="ms">add</span>Nouveau projet</div>
+      <div class="dm-item" onclick="openSaveModal()"><span class="ms">save</span>Sauvegarder</div>
+      <div class="dm-item" onclick="openLoadModal()"><span class="ms">upload_file</span>Ouvrir un projet</div>
+      <div class="dm-sep"></div>
+      <div class="dm-title">Publication</div>
+      <div class="dm-item" onclick="downloadAllPages()"><span class="ms">download</span>Télécharger les pages HTML</div>
+      <div class="dm-item dm-item-publish" onclick="openPublishModal()"><span class="ms">rocket_launch</span>Publier le site…</div>
+      <div class="dm-item" onclick="openLoadSiteModal()"><span class="ms">edit</span>Réouvrir site publié</div>
+      <div class="dm-item" onclick="openGSitesModal()"><span class="ms">integration_instructions</span>Copier pour Google Sites…</div>
+    </div>
+  </div>
+
+  <!-- Thème -->
+  <div class="tb-group dropdown" id="dd-theme">
+    <button class="tb-btn" onclick="toggleDD('dd-theme')" title="Style & thème" aria-label="Menu Style">
+      <span class="ms">palette</span><span class="tb-chevron ms">expand_more</span>
+    </button>
+    <div class="dropdown-menu" id="dd-theme-menu" style="min-width:260px">
+      <div class="dm-title">Thème visuel</div>
+      <div class="dm-item active" id="theme-item-light" onclick="setTheme('light')"><span class="ms">light_mode</span>Clair</div>
+      <div class="dm-item" id="theme-item-dark" onclick="setTheme('dark')"><span class="ms">dark_mode</span>Sombre</div>
+      <div class="dm-item" id="theme-item-hc" onclick="setTheme('hc')"><span class="ms">contrast</span>Haut contraste (malvoyants)</div>
+      <div class="dm-sep"></div>
+      <div class="dm-item" onclick="openVisualModal()"><span class="ms">tune</span>Paramètres visuels…</div>
+    </div>
+  </div>
+
+  <!-- Insérer -->
+  <div class="tb-group dropdown" id="dd-insert">
+    <button class="tb-btn" onclick="toggleDD('dd-insert')" title="Insérer un module" aria-label="Menu Insérer">
+      <span class="ms">add_circle</span><span class="tb-chevron ms">expand_more</span>
+    </button>
+    <div class="dropdown-menu" id="dd-insert-menu">
+      <div class="dm-title">Ajouter un module</div>
+      <div class="dm-item" onclick="addModule('navbar')"><span class="ms">menu</span>Menu de navigation</div>
+      <div class="dm-item" onclick="addModule('banner')"><span class="ms">panorama_wide_angle</span>Bandeau hero</div>
+      <div class="dm-item" onclick="addModule('title')"><span class="ms">title</span>Titre</div>
+      <div class="dm-item" onclick="addModule('paragraph')"><span class="ms">notes</span>Paragraphe</div>
+      <div class="dm-item" onclick="addModule('button')"><span class="ms">smart_button</span>Bouton</div>
+      <div class="dm-item" onclick="addModule('image')"><span class="ms">image</span>Image</div>
+      <div class="dm-item" onclick="addModule('youtube')"><span class="ms">play_circle</span>Vidéo YouTube</div>
+      <div class="dm-item" onclick="addModule('drive')"><span class="ms">insert_drive_file</span>Fichier Drive</div>
+      <div class="dm-item" onclick="addModule('tabs')"><span class="ms">tab</span>Onglets</div>
+      <div class="dm-item" onclick="addModule('columns')"><span class="ms">view_column</span>Colonnes</div>
+      <div class="dm-item" onclick="addModule('quote')"><span class="ms">format_quote</span>Citation</div>
+      <div class="dm-item" onclick="addModule('divider')"><span class="ms">horizontal_rule</span>Diviseur</div>
+      <div class="dm-item" onclick="addModule('spacer')"><span class="ms">height</span>Espace</div>
+    </div>
+  </div>
+
+  <div class="tb-sep"></div>
+
+  <!-- Annuler / Rétablir (futurs) -->
+  <div class="tb-group">
+    <button class="tb-btn" onclick="toast('Bientôt disponible')" title="Annuler (Ctrl+Z)" aria-label="Annuler">
+      <span class="ms">undo</span>
+    </button>
+    <button class="tb-btn" onclick="toast('Bientôt disponible')" title="Rétablir (Ctrl+Y)" aria-label="Rétablir">
+      <span class="ms">redo</span>
+    </button>
+  </div>
+
+  <div class="tb-sep"></div>
+
+  <div class="tb-spacer"></div>
+
+  <!-- Titre du site -->
+  <input type="text" id="site-title-input" class="pp-input"
+    style="width:160px;margin:0 6px;padding:5px 10px;font-size:13px;"
+    value="Mon Site" placeholder="Titre du site"
+    aria-label="Titre du site"/>
+
+  <button class="tb-btn" onclick="openSaveModal()" title="Sauvegarder" style="padding:5px 7px;" aria-label="Sauvegarder">
+    <span class="ms">save</span>
+  </button>
+</header>
+
+<!-- Barre de prévisualisation -->
+<div id="preview-bar">
+  <span class="pvbar-label">Aperçu :</span>
+  <div class="pvbar-btns">
+    <button class="pvbar-btn active" id="pv-desktop" onclick="setPreview('desktop')" title="Bureau — pleine largeur">
+      <span class="ms">desktop_windows</span>
+      <span class="pvbar-txt">Bureau</span>
+    </button>
+    <button class="pvbar-btn" id="pv-tablet" onclick="setPreview('tablet')" title="Tablette — 768px">
+      <span class="ms">tablet_android</span>
+      <span class="pvbar-txt">Tablette</span>
+    </button>
+    <button class="pvbar-btn" id="pv-mobile" onclick="setPreview('mobile')" title="Mobile — 390px">
+      <span class="ms">smartphone</span>
+      <span class="pvbar-txt">Mobile</span>
+    </button>
+  </div>
+  <span id="pvbar-size" class="pvbar-size">Pleine largeur</span>
+</div>
+
+<!-- ═══════ MAIN ════════════════════════════════════════════ -->
+<div id="main" role="main">
+
+  <!-- SIDEBAR -->
+  <aside id="sidebar" aria-label="Modules et pages">
+    <!-- Poignée de rabattement -->
+    <div id="sidebar-toggle" onclick="toggleSidebar()" title="Réduire/Agrandir le panneau" aria-label="Basculer le panneau gauche">
+      <span class="ms" id="sidebar-toggle-icon">chevron_left</span>
+    </div>
+    <!-- Modules palette -->
+    <div class="sb-section">
+      <div class="sb-title">Modules</div>
+      <div class="module-palette" id="module-palette">
+        <div class="palette-item" draggable="true" data-type="navbar" title="Menu de navigation">
+          <span class="ms">menu</span>
+          <span>Navbar</span>
+        </div>
+        <div class="palette-item" draggable="true" data-type="banner" title="Bandeau hero pleine largeur">
+          <span class="ms">panorama_wide_angle</span>Bandeau
+        </div>
+        <div class="palette-item" draggable="true" data-type="title" title="Titre H1–H4">
+          <span class="ms">title</span>Titre
+        </div>
+        <div class="palette-item" draggable="true" data-type="paragraph" title="Bloc de texte">
+          <span class="ms">notes</span>Texte
+        </div>
+        <div class="palette-item" draggable="true" data-type="button" title="Bouton cliquable">
+          <span class="ms">smart_button</span>Bouton
+        </div>
+        <div class="palette-item" draggable="true" data-type="image" title="Image">
+          <span class="ms">image</span>Image
+        </div>
+        <div class="palette-item" draggable="true" data-type="attachment" title="Pièce jointe (image ou document, envoyée depuis l'ordinateur)">
+          <span class="ms">attach_file</span>Pièce
+        </div>
+        <div class="palette-item" draggable="true" data-type="youtube" title="Vidéo YouTube intégrée">
+          <span class="ms">play_circle</span>YouTube
+        </div>
+        <div class="palette-item" draggable="true" data-type="drive" title="Fichier Google Drive (PDF, etc.)">
+          <span class="ms">insert_drive_file</span>Drive
+        </div>
+        <div class="palette-item" draggable="true" data-type="tabs" title="Onglets avec contenu">
+          <span class="ms">tab</span>Onglets
+        </div>
+        <div class="palette-item" draggable="true" data-type="columns" title="Mise en colonnes">
+          <span class="ms">view_column</span>Cols
+        </div>
+        <div class="palette-item" draggable="true" data-type="sheet" title="Partition musicale (abcjs)">
+          <span class="ms">music_note</span><span>Partition</span>
+        </div>
+        <div class="palette-item" draggable="true" data-type="quote" title="Bloc citation">
+          <span class="ms">format_quote</span>Citation
+        </div>
+        <div class="palette-item" draggable="true" data-type="divider" title="Ligne de séparation">
+          <span class="ms">horizontal_rule</span>Sépar.
+        </div>
+        <div class="palette-item" draggable="true" data-type="spacer" title="Espace vide vertical">
+          <span class="ms">height</span>Espace
+        </div>
+      </div>
+    </div>
+
+    <!-- Pages -->
+    <div class="sb-section">
+      <div class="sb-title">Pages</div>
+      <div class="page-tree" id="page-tree"></div>
+      <div class="page-add" onclick="addPage()">
+        <span class="ms" style="font-size:16px">add</span> Ajouter une page
+      </div>
+    </div>
+  </aside>
+
+  <!-- CANVAS -->
+  <section id="canvas-wrap" aria-label="Canevas éditeur">
+    <div id="canvas-frame">
+      <div id="canvas">
+        <div class="canvas-empty" id="canvas-empty">
+          <span class="ms">drag_indicator</span>
+          <p>Glissez des modules ici pour construire votre page</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PROPERTIES PANEL -->
+  <aside id="props-panel" class="hidden" role="complementary" aria-label="Propriétés du module">
+    <!-- Poignée de rabattement -->
+    <div id="props-toggle" onclick="toggleProps()" title="Réduire/Agrandir le panneau" aria-label="Basculer le panneau droit">
+      <span class="ms" id="props-toggle-icon">chevron_right</span>
+    </div>
+    <div class="pp-header">
+      <h3 id="pp-title">Propriétés</h3>
+      <button class="pp-close" onclick="closeProps()" aria-label="Fermer">
+        <span class="ms">close</span>
+      </button>
+    </div>
+    <div class="pp-body" id="pp-body">
+      <!-- Rempli dynamiquement -->
+    </div>
+  </aside>
+</div><!-- /#main -->
+
+<!-- Boutons flottants de réouverture des panneaux -->
+<div id="sidebar-reopen" onclick="toggleSidebar()" title="Ouvrir le panneau" aria-label="Rouvrir la sidebar">
+  <span class="ms">chevron_right</span>
+</div>
+<div id="props-reopen" onclick="toggleProps()" title="Ouvrir le panneau" aria-label="Rouvrir le panneau propriétés">
+  <span class="ms">chevron_left</span>
+</div>
+
+<!-- Modal : Paramètres visuels -->
+<div class="modal-backdrop" id="modal-visual" role="dialog" aria-modal="true" aria-labelledby="modal-visual-title">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-header">
+      <h2 id="modal-visual-title">Paramètres visuels</h2>
+      <button class="modal-close" onclick="closeModal('modal-visual')"><span class="ms">close</span></button>
+    </div>
+    <div class="modal-body" style="display:flex;flex-direction:column;gap:20px">
+
+      <!-- Couleurs -->
+      <div>
+        <div class="dm-title" style="padding:0 0 8px">Palette de couleurs</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div class="pp-group">
+            <div class="pp-label">Couleur principale</div>
+            <div class="pp-color-row"><input type="color" class="pp-color" id="vp-primary" value="#1565C0"/><span class="pp-hint">Boutons, accents</span></div>
+          </div>
+          <div class="pp-group">
+            <div class="pp-label">Couleur secondaire</div>
+            <div class="pp-color-row"><input type="color" class="pp-color" id="vp-secondary" value="#455A64"/><span class="pp-hint">Éléments discrets</span></div>
+          </div>
+          <div class="pp-group">
+            <div class="pp-label">Couleur tertiaire</div>
+            <div class="pp-color-row"><input type="color" class="pp-color" id="vp-tertiary" value="#00897B"/><span class="pp-hint">Badges, highlights</span></div>
+          </div>
+          <div class="pp-group">
+            <div class="pp-label">Fond général</div>
+            <div class="pp-color-row"><input type="color" class="pp-color" id="vp-surface" value="#F8FAFF"/><span class="pp-hint">Surface des modules</span></div>
+          </div>
+          <div class="pp-group">
+            <div class="pp-label">Couleur texte principal</div>
+            <div class="pp-color-row"><input type="color" class="pp-color" id="vp-on-surface" value="#1A1C22"/></div>
+          </div>
+          <div class="pp-group">
+            <div class="pp-label">Couleur texte discret</div>
+            <div class="pp-color-row"><input type="color" class="pp-color" id="vp-on-surface-v" value="#44474F"/></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Typographie -->
+      <div>
+        <div class="dm-title" style="padding:0 0 8px">Typographie</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div class="pp-group">
+            <div class="pp-label">Police de corps</div>
+            <select class="pp-select" id="vp-font-sans">
+              <option value="'DM Sans', sans-serif">DM Sans (défaut)</option>
+              <option value="'Inter', sans-serif">Inter</option>
+              <option value="'Roboto', sans-serif">Roboto</option>
+              <option value="'Open Sans', sans-serif">Open Sans</option>
+              <option value="'Lato', sans-serif">Lato</option>
+              <option value="Arial, sans-serif">Arial</option>
+              <option value="Georgia, serif">Georgia</option>
+              <option value="system-ui, sans-serif">Système</option>
+            </select>
+          </div>
+          <div class="pp-group">
+            <div class="pp-label">Police de titres</div>
+            <select class="pp-select" id="vp-font-display">
+              <option value="'DM Serif Display', serif">DM Serif Display (défaut)</option>
+              <option value="'Playfair Display', serif">Playfair Display</option>
+              <option value="'Merriweather', serif">Merriweather</option>
+              <option value="'Lora', serif">Lora</option>
+              <option value="Georgia, serif">Georgia</option>
+              <option value="'DM Sans', sans-serif">DM Sans (sans-serif)</option>
+            </select>
+          </div>
+          <div class="pp-group">
+            <div class="pp-label">Taille de base (px)</div>
+            <input type="range" class="pp-slider" id="vp-base-size" min="13" max="20" value="16"/>
+            <div class="pp-slider-val" id="vp-base-size-val">16px</div>
+          </div>
+          <div class="pp-group">
+            <div class="pp-label">Interligne</div>
+            <input type="range" class="pp-slider" id="vp-line-height" min="1.2" max="2.2" step="0.1" value="1.75"/>
+            <div class="pp-slider-val" id="vp-line-height-val">1.75</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Formes -->
+      <div>
+        <div class="dm-title" style="padding:0 0 8px">Coins & formes</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div class="pp-group">
+            <div class="pp-label">Rayon des coins (px)</div>
+            <input type="range" class="pp-slider" id="vp-radius" min="0" max="24" value="8"/>
+            <div class="pp-slider-val" id="vp-radius-val">8px</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Espacements -->
+      <div>
+        <div class="dm-title" style="padding:0 0 8px">Marges par défaut des modules</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div class="pp-group">
+            <div class="pp-label">Haut (px)</div>
+            <div class="pp-pad-stepper">
+              <button class="pp-pad-step" type="button" onclick="stepVpPad('vp-gpad-top',-4)">−</button>
+              <input type="number" class="pp-pad-val" id="vp-gpad-top" min="0" max="120" value="16"/>
+              <button class="pp-pad-step" type="button" onclick="stepVpPad('vp-gpad-top',4)">+</button>
+            </div>
+          </div>
+          <div class="pp-group">
+            <div class="pp-label">Bas (px)</div>
+            <div class="pp-pad-stepper">
+              <button class="pp-pad-step" type="button" onclick="stepVpPad('vp-gpad-bottom',-4)">−</button>
+              <input type="number" class="pp-pad-val" id="vp-gpad-bottom" min="0" max="120" value="16"/>
+              <button class="pp-pad-step" type="button" onclick="stepVpPad('vp-gpad-bottom',4)">+</button>
+            </div>
+          </div>
+          <div class="pp-group">
+            <div class="pp-label">Gauche (px)</div>
+            <div class="pp-pad-stepper">
+              <button class="pp-pad-step" type="button" onclick="stepVpPad('vp-gpad-left',-4)">−</button>
+              <input type="number" class="pp-pad-val" id="vp-gpad-left" min="0" max="120" value="24"/>
+              <button class="pp-pad-step" type="button" onclick="stepVpPad('vp-gpad-left',4)">+</button>
+            </div>
+          </div>
+          <div class="pp-group">
+            <div class="pp-label">Droite (px)</div>
+            <div class="pp-pad-stepper">
+              <button class="pp-pad-step" type="button" onclick="stepVpPad('vp-gpad-right',-4)">−</button>
+              <input type="number" class="pp-pad-val" id="vp-gpad-right" min="0" max="120" value="24"/>
+              <button class="pp-pad-step" type="button" onclick="stepVpPad('vp-gpad-right',4)">+</button>
+            </div>
+          </div>
+        </div>
+        <div class="pp-hint" style="margin-top:6px">Les modules individuels ajustent ces valeurs en %.</div>
+      </div>
+
+      <!-- Prévisualisation -->
+      <div id="vp-preview" style="border:1px solid var(--c-outline-v);border-radius:var(--radius-md);padding:16px;background:var(--c-surface-1)">
+        <div id="vp-prev-title" style="font-size:22px;font-weight:400;margin-bottom:6px">Titre de prévisualisation</div>
+        <div id="vp-prev-body" style="font-size:16px;line-height:1.75;color:var(--c-on-surface-v)">Ceci est un exemple de texte de corps pour visualiser la typographie choisie.</div>
+        <button id="vp-prev-btn" style="margin-top:12px;padding:10px 20px;border-radius:50px;border:none;cursor:pointer;font-weight:600;font-size:14px">Bouton exemple</button>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-ghost" onclick="resetVisual()">Réinitialiser</button>
+      <button class="btn-ghost" onclick="closeModal('modal-visual')">Fermer</button>
+      <button class="btn-primary" onclick="applyVisual()"><span class="ms" style="font-size:16px">check</span> Appliquer au site</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toolbar lien inline (flottant sur sélection) -->
+<div id="inline-link-bar" role="toolbar" aria-label="Formatage de texte">
+  <!-- Formatage -->
+  <select id="ilb-font" title="Police">
+    <option value="">Par défaut</option>
+    <option value="'DM Sans',sans-serif">DM Sans</option>
+    <option value="'DM Serif Display',serif">DM Serif</option>
+    <option value="'Inter',sans-serif">Inter</option>
+    <option value="'Roboto',sans-serif">Roboto</option>
+    <option value="Georgia,serif">Georgia</option>
+    <option value="Arial,sans-serif">Arial</option>
+    <option value="'Courier New',monospace">Monospace</option>
+  </select>
+  <div style="display:flex;align-items:center;gap:1px;background:rgba(255,255,255,.08);border-radius:4px;padding:1px">
+    <button class="ilb-btn" id="ilb-sz-down" title="Réduire la taille"><span class="ms">text_decrease</span></button>
+    <input id="ilb-size" type="number" min="8" max="96" value="16" title="Taille (px)"
+      style="width:36px;background:transparent;border:none;color:#fff;font-size:12px;text-align:center;padding:2px 0;outline:none"/>
+    <button class="ilb-btn" id="ilb-sz-up" title="Augmenter la taille"><span class="ms">text_increase</span></button>
+  </div>
+  <div class="ilb-sep"></div>
+  <button class="ilb-btn ilb-fmt" id="ilb-bold" data-cmd="bold" title="Gras (Ctrl+B)"><span class="ms">format_bold</span></button>
+  <button class="ilb-btn ilb-fmt" id="ilb-italic" data-cmd="italic" title="Italique (Ctrl+I)"><span class="ms">format_italic</span></button>
+  <button class="ilb-btn ilb-fmt" id="ilb-underline" data-cmd="underline" title="Souligné (Ctrl+U)"><span class="ms">format_underlined</span></button>
+  <button class="ilb-btn ilb-fmt" id="ilb-strike" data-cmd="strikeThrough" title="Barré"><span class="ms">strikethrough_s</span></button>
+  <div class="ilb-sep"></div>
+  <!-- Lien -->
+  <button class="ilb-btn" id="ilb-link-toggle" title="Insérer un lien"><span class="ms">link</span></button>
+  <button class="ilb-btn" id="ilb-remove" title="Supprimer le lien"><span class="ms">link_off</span></button>
+  <div class="ilb-sep"></div>
+  <button class="ilb-btn" id="ilb-close" title="Fermer"><span class="ms" style="font-size:12px">close</span></button>
+</div>
+
+<!-- Popup lien flottant -->
+<div id="ilb-link-popup">
+  <div class="ilp-row">
+    <span class="ms" style="font-size:13px;opacity:.55">language</span>
+    <input id="ilb-url" type="url" placeholder="https://…" autocomplete="off"/>
+    <label style="display:flex;align-items:center;gap:4px;font-size:11px;cursor:pointer;white-space:nowrap;flex-shrink:0">
+      <input type="checkbox" id="ilb-blank" style="accent-color:var(--c-primary)"/> <span style="opacity:.7">↗</span>
+    </label>
+    <button class="ilp-apply" id="ilb-confirm" title="Appliquer"><span class="ms">check</span></button>
+  </div>
+  <div class="ilp-sep"></div>
+  <div class="ilp-label">Pages du site</div>
+  <div id="ilp-pages"></div>
+</div>
+
+<!-- Modal : Éditeur de partition -->
+<div class="modal-backdrop" id="modal-sheet" role="dialog" aria-modal="true" aria-labelledby="modal-sheet-title">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="modal-sheet-title">✏️ Éditeur de partition</h2>
+      <button class="modal-close" onclick="closeModal('modal-sheet')"><span class="ms">close</span></button>
+    </div>
+    <div class="sm-modal-body">
+      <!-- Ligne mode de portée + octave -->
+      <div class="sm-mode-row">
+        <button class="sm-staff-mode-btn" id="sm-mode-btn" onclick="smCycleMode()">
+          <span id="sm-mode-icon" style="font-size:1.3rem">𝄞</span>
+          <span>
+            <div style="font-size:9px;opacity:.6;text-transform:uppercase;letter-spacing:.06em">Mode</div>
+            <div id="sm-mode-name" style="font-weight:700">Clé de Sol</div>
+          </span>
+          <span style="opacity:.5;font-size:11px">↻</span>
+        </button>
+        <div class="sm-octave-ctrl" id="sm-octave-ctrl" title="Octave de saisie">
+          <button onclick="smChangeOctave(-1)" type="button">−</button>
+          <span id="sm-octave-display">4</span>
+          <button onclick="smChangeOctave(+1)" type="button">+</button>
+        </div>
+        <button class="sm-btn-alt" id="sm-btn-zoom" onclick="smCycleZoom()" title="Zoom portée (tactile)" style="font-size:11px;min-width:44px">1×</button>
+        <button class="sm-btn-alt" id="sm-btn-voice-toggle" onclick="smToggleVoice()" title="Voix active" style="font-size:11px;min-width:44px">V1↑</button>
+      </div>
+
+      <!-- Toolbar batterie (cachée par défaut) -->
+      <div class="sm-toolbar" id="sm-drum-toolbar" style="display:none">
+        <button class="sm-btn-alt" id="sm-drum-oh"    onclick="smToggleDrumMod('oh',this)"    title="Charleston ouvert">OH</button>
+        <button class="sm-btn-alt" id="sm-drum-crash" onclick="smToggleDrumMod('crash',this)" title="Crash">Crash</button>
+        <div class="sm-toolbar-sep"></div>
+        <button class="sm-btn-alt" id="sm-drum-hhf"   onclick="smToggleDrumMod('hhf',this)"   title="Charleston pied">HH🦶</button>
+      </div>
+
+      <!-- Toolbar durée + altération -->
+      <div class="sm-toolbar" id="sm-std-toolbar">
+        <button class="sm-btn-dur" id="sm-dur-4"  onclick="smSelectDur('4',this)"  title="Ronde">𝅝</button>
+        <button class="sm-btn-dur" id="sm-dur-2"  onclick="smSelectDur('2',this)"  title="Blanche">𝅗𝅥</button>
+        <button class="sm-btn-dur active" id="sm-dur-1" onclick="smSelectDur('1',this)" title="Noire">♩</button>
+        <button class="sm-btn-dur" id="sm-dur-h"  onclick="smSelectDur('/',this)"  title="Croche">♪</button>
+        <button class="sm-btn-dur" id="sm-dur-q"  onclick="smSelectDur('/2',this)" title="Double croche">𝅘𝅥𝅯</button>
+        <div class="sm-toolbar-sep sm-hide-drums"></div>
+        <button class="sm-btn-alt sm-hide-drums" id="sm-alt-sharp" title="Dièse (long: double)">♯</button>
+        <button class="sm-btn-alt sm-hide-drums" id="sm-alt-flat"  title="Bémol (long: double)">♭</button>
+        <span class="sm-alt-status sm-hide-drums" id="sm-alt-status">♮</span>
+        <div class="sm-toolbar-sep"></div>
+        <button class="sm-btn-alt" id="sm-btn-dot" onclick="smToggleDot(this)" title="Note pointée">·</button>
+        <button class="sm-btn-alt" id="sm-btn-tie" onclick="smToggleTie(this)" title="Liaison">⌒</button>
+        <div class="sm-toolbar-sep sm-hide-drums"></div>
+        <button class="sm-btn-alt sm-hide-drums" id="sm-btn-rest" onclick="smAddRest()" title="Ajouter un silence" style="font-size:11px">𝄽 Silence</button>
+      </div>
+
+      <!-- Portée interactive -->
+      <div class="sm-staff-wrapper" id="sm-staff-wrapper">
+        <div id="sm-user-staff"></div>
+        <div class="sm-click-overlay" id="sm-staff-overlay"></div>
+        <div class="sm-ghost-note"   id="sm-ghost-note"></div>
+        <div class="sm-ghost-ledger" id="sm-ghost-ledger"></div>
+        <div class="sm-ghost-label"  id="sm-ghost-label"></div>
+        <button id="sm-play-inline" onclick="smPlayInline()" title="Lire"
+          style="position:absolute;bottom:8px;right:8px;z-index:20;width:38px;height:38px;border-radius:50%;border:none;background:var(--c-primary);color:#fff;font-size:1rem;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.25);display:flex;align-items:center;justify-content:center;">▶</button>
+      </div>
+
+      <!-- Actions -->
+      <div class="sm-actions-row">
+        <div style="position:relative;display:inline-block">
+          <button class="sm-action-btn" id="sm-barline-btn" onclick="smToggleBarlineMenu(event)">𝄀 Mesure ▾</button>
+          <div id="sm-barline-menu" style="display:none;position:absolute;bottom:100%;left:0;z-index:200;background:var(--c-surface-1);border:1px solid var(--c-outline);border-radius:8px;box-shadow:0 -4px 16px rgba(0,0,0,.25);padding:4px;min-width:200px;margin-bottom:4px;">
+            <button class="sm-bm-item" onclick="smAddBarlineType('|')">   <span class="sm-bm-sym">𝄀</span> Barre simple</button>
+            <button class="sm-bm-item" onclick="smAddBarlineType('||')">  <span class="sm-bm-sym">𝄁</span> Double barre</button>
+            <button class="sm-bm-item" onclick="smAddBarlineType(':|')">  <span class="sm-bm-sym">𝄇</span> Reprise droite <small>(après la note)</small></button>
+            <button class="sm-bm-item" onclick="smAddBarlineType('|:')">  <span class="sm-bm-sym">𝄆</span> Reprise gauche <small>(avant la note)</small></button>
+          </div>
+        </div>
+        <!-- Champ count reprise droite — visible si barline :|n sélectionnée -->
+        <div id="sm-repeat-count-row" style="display:none;align-items:center;gap:4px;">
+          <span style="font-size:12px;color:var(--c-on-surface-v)">×</span>
+          <button class="sm-action-btn" style="width:26px;padding:0" onclick="smStepRepeatCount(-1)">−</button>
+          <span id="sm-repeat-count-val" style="font-size:13px;font-weight:700;min-width:18px;text-align:center">2</span>
+          <button class="sm-action-btn" style="width:26px;padding:0" onclick="smStepRepeatCount(+1)">+</button>
+        </div>
+        <button class="sm-action-btn" onclick="smDeleteLast()">⌫ Supprimer</button>
+        <button class="sm-action-btn" onclick="smClearAll()">🗑 Tout effacer</button>
+        <button class="sm-action-btn" onclick="smToggleAbcEditor()" id="sm-abc-toggle-btn" title="Éditer le texte ABC directement">✎ ABC</button>
+        <div class="sm-note-seq" id="sm-note-seq">Aucune note.</div>
+      </div>
+      <!-- Éditeur ABC direct (caché par défaut) -->
+      <div id="sm-abc-editor-row" style="display:none;flex-direction:column;gap:6px;padding:4px 0;">
+        <textarea id="sm-abc-textarea"
+          style="width:100%;min-height:120px;font-family:monospace;font-size:12px;padding:8px;border:1px solid var(--c-outline);border-radius:6px;background:var(--c-surface-2);color:var(--c-on-surface);resize:vertical;outline:none;"
+          placeholder="X:1&#10;T:Titre&#10;M:4/4&#10;L:1/8&#10;K:C&#10;|CDEF GABC|"></textarea>
+        <button class="sm-action-btn" onclick="smApplyAbcText()" style="align-self:flex-start;background:var(--c-primary);color:#fff;border-color:var(--c-primary);">✓ Appliquer</button>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-ghost" onclick="closeModal('modal-sheet')">Annuler</button>
+      <button class="btn-primary" onclick="smValidate()"><span class="ms" style="font-size:16px">check</span> Valider</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal : Sauvegarder -->
+<div class="modal-backdrop" id="modal-save" role="dialog" aria-modal="true" aria-labelledby="modal-save-title">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="modal-save-title">Sauvegarder le projet</h2>
+      <button class="modal-close" onclick="closeModal('modal-save')"><span class="ms">close</span></button>
+    </div>
+    <div class="modal-body">
+      <div class="pp-group">
+        <label class="pp-label" for="save-name">Nom du projet</label>
+        <input type="text" id="save-name" class="pp-input" placeholder="Mon super site"/>
+      </div>
+      <p style="font-size:13px;color:var(--c-on-surface-v)">Le projet sera sauvegardé dans votre Google Drive dans le dossier <strong>SiteForge_Projects</strong>.</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-ghost" onclick="closeModal('modal-save')">Annuler</button>
+      <button class="btn-primary" onclick="doSave()"><span class="ms" style="font-size:16px">save</span> Sauvegarder</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal : Charger -->
+<div class="modal-backdrop" id="modal-load" role="dialog" aria-modal="true" aria-labelledby="modal-load-title">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="modal-load-title">Ouvrir un projet</h2>
+      <button class="modal-close" onclick="closeModal('modal-load')"><span class="ms">close</span></button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:13px;color:var(--c-on-surface-v)">Projets sauvegardés dans votre Drive :</p>
+      <div class="file-list" id="load-file-list">
+        <div style="padding:20px;text-align:center;color:var(--c-on-surface-v);font-size:13px">Chargement…</div>
+      </div>
+      <div class="pp-group">
+        <label class="pp-label" for="load-file-id">Ou entrez un ID de fichier Drive</label>
+        <input type="text" id="load-file-id" class="pp-input" placeholder="1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms"/>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-ghost" onclick="closeModal('modal-load')">Annuler</button>
+      <button class="btn-primary" onclick="doLoadById()">Charger par ID</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal : Publier -->
+<div class="modal-backdrop" id="modal-publish" role="dialog" aria-modal="true" aria-labelledby="modal-publish-title">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="modal-publish-title">Publier le site</h2>
+      <button class="modal-close" onclick="closeModal('modal-publish')"><span class="ms">close</span></button>
+    </div>
+    <div class="modal-body">
+      <div class="pp-group">
+        <label class="pp-label" for="pub-title">Titre du site publié</label>
+        <input type="text" id="pub-title" class="pp-input" placeholder="Mon Site"/>
+      </div>
+      <p style="font-size:13px;color:var(--c-on-surface-v)">Le site HTML sera généré et déposé dans <strong>SiteForge_Published</strong> sur votre Drive, puis rendu public. Vous recevrez l'URL de partage.</p>
+      <div id="pub-result" style="display:none;padding:14px;border-radius:var(--radius-sm);background:var(--c-primary-cont);border:1px solid var(--c-primary)">
+        <p style="font-size:13px;font-weight:600;color:var(--c-primary);margin-bottom:6px">✅ Site publié avec succès !</p>
+        <p style="font-size:12px;color:var(--c-on-surface-v);margin-bottom:4px">Lien de partage :</p>
+        <a id="pub-link" href="#" target="_blank" style="font-size:13px;color:var(--c-primary);word-break:break-all;font-weight:500"></a>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-ghost" onclick="closeModal('modal-publish')">Fermer</button>
+      <button class="btn-primary" onclick="doPublish()"><span class="ms" style="font-size:16px">rocket_launch</span> Publier</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal : Copier pour Google Sites -->
+<div class="modal-backdrop" id="modal-gsites" role="dialog" aria-modal="true" aria-labelledby="modal-gsites-title">
+  <div class="modal" style="width:min(700px,92vw)">
+    <div class="modal-header">
+      <h2 id="modal-gsites-title">Copier pour Google Sites</h2>
+      <button class="modal-close" onclick="closeModal('modal-gsites')"><span class="ms">close</span></button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:13px;color:var(--c-on-surface-v);margin-bottom:10px">
+        Fragment autonome des modules de la page courante (<strong id="gsites-page-name"></strong>).
+        Collez-le dans Google Sites via <em>Insérer → Intégrer → Intégrer le code</em>.
+      </p>
+      <textarea id="gsites-output" class="pp-input pp-textarea" readonly
+        style="width:100%;min-height:280px;font-family:monospace;font-size:11px;white-space:pre"></textarea>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-ghost" onclick="closeModal('modal-gsites')">Fermer</button>
+      <button class="btn-primary" onclick="copyGSitesFragment()"><span class="ms" style="font-size:16px">content_copy</span> Copier</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal : YouTube -->
+<div class="modal-backdrop" id="modal-youtube" role="dialog" aria-modal="true" aria-labelledby="modal-yt-title">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="modal-yt-title">Insérer une vidéo YouTube</h2>
+      <button class="modal-close" onclick="closeModal('modal-youtube')"><span class="ms">close</span></button>
+    </div>
+    <div class="modal-body">
+      <div class="pp-group">
+        <label class="pp-label" for="yt-url">URL ou ID de la vidéo</label>
+        <input type="text" id="yt-url" class="pp-input" placeholder="https://www.youtube.com/watch?v=..."/>
+        <p style="font-size:12px;color:var(--c-on-surface-v)">Accepte : URL complète, youtu.be/... ou simplement l'ID</p>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-ghost" onclick="closeModal('modal-youtube')">Annuler</button>
+      <button class="btn-primary" onclick="confirmYoutube()">Insérer</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal : Drive -->
+<div class="modal-backdrop" id="modal-drive" role="dialog" aria-modal="true" aria-labelledby="modal-drive-title">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="modal-drive-title">Insérer un fichier Drive</h2>
+      <button class="modal-close" onclick="closeModal('modal-drive')"><span class="ms">close</span></button>
+    </div>
+    <div class="modal-body">
+      <div class="pp-group">
+        <label class="pp-label" for="drive-file-id">ID du fichier Google Drive</label>
+        <input type="text" id="drive-file-id" class="pp-input" placeholder="1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms"/>
+        <p style="font-size:12px;color:var(--c-on-surface-v)">Trouvez l'ID dans le lien de partage Drive. Le fichier sera automatiquement rendu public.</p>
+      </div>
+      <div class="pp-group">
+        <label class="pp-label" for="drive-file-name">Nom affiché (optionnel)</label>
+        <input type="text" id="drive-file-name" class="pp-input" placeholder="Mon document PDF"/>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-ghost" onclick="closeModal('modal-drive')">Annuler</button>
+      <button class="btn-primary" onclick="confirmDrive()">Insérer</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════
+   STATE GLOBAL
+═══════════════════════════════════════════════════════════ */
+const SF = {
+  theme:     'light',
+  siteId:    genSiteId(),
+  pages:     [],
+  currentPage: 0,
+  selectedModuleId: null,
+  pendingModuleType: null,
+  dragType: null,
+  touchDropTarget: null,
+  pendingZone: null,
+  pendingParentData: null,
+  _mid: 0,
+  globalPad: { top: 16, right: 24, bottom: 16, left: 24 },
+  sharedNavbar: null,  // navbar partagée entre toutes les pages
+};
+
+function genId() { return 'sf_' + (++SF._mid) + '_' + Math.random().toString(36).slice(2,6); }
+function genSiteId() { return 'st_' + Math.random().toString(36).slice(2,8) + Math.random().toString(36).slice(2,4); }
+
+/* ── Slugs de page (identifiants stables pour les liens internes,
+   indépendants de l'ordre des pages — cf. schéma JSON serveur) ── */
+function slugify(text) {
+  return (text || '')
+    .toString().trim().toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')   // enlève les accents
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    || 'page';
+}
+function uniqueSlug(base, existingSlugs) {
+  let slug = base, n = 2;
+  while (existingSlugs.includes(slug)) { slug = base + '-' + n; n++; }
+  return slug;
+}
+/* Assigne un slug à une page si elle n'en a pas encore (nouvelle page ou
+   projet importé d'avant l'introduction des slugs) */
+function ensurePageSlug(page, otherPages) {
+  if (page.slug) return page.slug;
+  const existing = otherPages.filter(p => p !== page).map(p => p.slug).filter(Boolean);
+  page.slug = uniqueSlug(slugify(page.title), existing);
+  return page.slug;
+}
+/* Migration : garantit que toutes les pages ont un slug unique (appelé
+   après import d'un projet, potentiellement sauvegardé avant ce système) */
+function ensureAllPageSlugs(pages) {
+  pages.forEach(p => ensurePageSlug(p, pages));
+}
+
+// Calcule le padding effectif d'un module : globalPad * (padScale/100)
+function getModulePad(data) {
+  const g = SF.globalPad;
+  const s = (data.padScale ?? 100) / 100;
+  return {
+    top:    Math.round(g.top    * s),
+    right:  Math.round(g.right  * s),
+    bottom: Math.round(g.bottom * s),
+    left:   Math.round(g.left   * s),
+  };
+}
+
+// Applique le padding calculé sur un élément DOM
+function applyModulePad(el, data) {
+  const p = getModulePad(data);
+  el.style.padding = `${p.top}px ${p.right}px ${p.bottom}px ${p.left}px`;
+}
+
+// Propage SF.sharedNavbar à toutes les pages et rafraîchit le canvas courant
+function syncNavbarAllPages() {
+  if (!SF.sharedNavbar) return;
+  const shared = SF.sharedNavbar;
+  SF.pages.forEach(page => {
+    const nb = (page.modules || []).find(m => m.type === 'navbar');
+    if (nb && nb.id !== shared.id) {
+      // Copier toutes les propriétés sauf l'id
+      Object.keys(shared).forEach(k => { if (k !== 'id') nb[k] = shared[k]; });
+    }
+  });
+  // Rafraîchir les modules navbar visibles dans le canvas
+  document.querySelectorAll('.sf-module').forEach(el => {
+    if (el._data?.type === 'navbar') refreshModule(el._data);
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════
+   INIT
+═══════════════════════════════════════════════════════════ */
+document.addEventListener('DOMContentLoaded', () => {
+  // Init première page
+  SF.pages = [{ id: genId(), title: 'Accueil', slug: 'accueil', modules: [], children: [] }];
+  // Valeurs visuelles par défaut (évite de parser getComputedStyle)
+  SF.visualParams = {
+    primary:     '#1565C0',
+    secondary:   '#455A64',
+    tertiary:    '#00897B',
+    surface:     '#F8FAFF',
+    onSurface:   '#1A1C22',
+    onSurfaceV:  '#44474F',
+    fontSans:    '',
+    fontDisplay: '',
+    baseSize:    '16',
+    lineHeight:  '1.75',
+    radius:      '8',
+  };
+  renderPageTree();
+  initCanvas();
+  initPaletteDrag();
+  initInlineLinkBar();
+
+  // Fermer dropdowns au clic extérieur
+  document.addEventListener('click', e => {
+    if (!e.target.closest('.dropdown')) closeAllDD();
+  });
+
+  // Input titre
+  document.getElementById('site-title-input').addEventListener('input', e => {
+    SF.siteTitle = e.target.value;
+  });
+});
+
+/* ═══════════════════════════════════════════════════════════
+   PANNEAUX RÉTRACTABLES
+═══════════════════════════════════════════════════════════ */
+let sidebarCollapsed = false;
+let propsCollapsed   = false;
+
+function toggleSidebar() {
+  sidebarCollapsed = !sidebarCollapsed;
+  const sb   = document.getElementById('sidebar');
+  const icon = document.getElementById('sidebar-toggle-icon');
+  const btn  = document.getElementById('sidebar-reopen');
+  sb.classList.toggle('collapsed', sidebarCollapsed);
+  btn.classList.toggle('show', sidebarCollapsed);
+  icon.textContent = sidebarCollapsed ? 'chevron_right' : 'chevron_left';
+}
+
+function toggleProps() {
+  propsCollapsed = !propsCollapsed;
+  const pp   = document.getElementById('props-panel');
+  const icon = document.getElementById('props-toggle-icon');
+  const btn  = document.getElementById('props-reopen');
+  pp.classList.toggle('collapsed', propsCollapsed);
+  btn.classList.toggle('show', propsCollapsed);
+  icon.textContent = propsCollapsed ? 'chevron_left' : 'chevron_right';
+}
+
+/* ═══════════════════════════════════════════════════════════
+   THÈME / MODE
+═══════════════════════════════════════════════════════════ */
+function setTheme(t) {
+  SF.theme = t;
+  document.body.dataset.theme = t;
+  closeAllDD();
+  ['light','dark','hc'].forEach(id => {
+    const el = document.getElementById('theme-item-' + id);
+    if (el) el.classList.toggle('active', id === t);
+  });
+  toast('Thème : ' + { light:'Clair', dark:'Sombre', hc:'Haut contraste' }[t]);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   PREVIEW
+═══════════════════════════════════════════════════════════ */
+function setPreview(mode) {
+  const frame  = document.getElementById('canvas-frame');
+  const sizeEl = document.getElementById('pvbar-size');
+  frame.classList.remove('preview-tablet','preview-mobile');
+  if (mode === 'tablet') { frame.classList.add('preview-tablet'); }
+  if (mode === 'mobile') { frame.classList.add('preview-mobile'); }
+  ['desktop','tablet','mobile'].forEach(m => {
+    document.getElementById('pv-'+m)?.classList.toggle('active', m === mode);
+  });
+  const labels = { desktop: 'Pleine largeur', tablet: '768 px — Tablette', mobile: '390 px — Mobile' };
+  if (sizeEl) sizeEl.textContent = labels[mode] || '';
+}
+
+/* ═══════════════════════════════════════════════════════════
+   DROPDOWNS
+═══════════════════════════════════════════════════════════ */
+function toggleDD(id) {
+  const dd = document.getElementById(id);
+  const menu = document
