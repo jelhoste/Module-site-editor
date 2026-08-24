@@ -4815,6 +4815,16 @@ function generatePageHTML(page, pageIndex, title) {
     return { w: r.width||0, h: r.height||0 };
   }
 
+  // Retrouve, dans le SVG visible, l'élément correspondant à un élément du
+  // rendu audio (caché), via les classes abcjs déterministes (add_classes) —
+  // permet de lire sa position RÉELLEMENT AFFICHÉE plutôt que de la calculer.
+  function findVisibleMatch(viewEl, audioEl) {
+    if (!audioEl || !audioEl.classList) return null;
+    var cls = Array.prototype.filter.call(audioEl.classList, function(c){ return /^abcjs-/.test(c) && /\d/.test(c); });
+    if (!cls.length) return null;
+    try { return viewEl.querySelector('.' + cls.join('.')); } catch(e) { return null; }
+  }
+
   function initSheet(el) {
     var abc = el.dataset.abc || '';
     if (!abc || typeof ABCJS === 'undefined') return;
@@ -4867,15 +4877,40 @@ function generatePageHTML(page, pageIndex, title) {
           ['x1','x2','y1','y2'].forEach(function(a){line.setAttributeNS(null,a,'0');});
           svg.appendChild(line);
         }
-        // Dimensions natives du rendu AUDIO (référentiel des ev.left/top d'abcjs) :
-        // on convertira ensuite en pourcentages, qui se résolvent correctement
-        // quel que soit le référentiel réel du SVG visible (étiré en CSS).
+        // Repli si aucune correspondance d'éléments n'est trouvée (voir onEvent)
         el._audioDims = svgNativeDims((el._audioHost || el._hidden).querySelector('svg'));
       },
       onEvent: function(ev) {
         viewEl.querySelectorAll('.sm-playing').forEach(function(e){e.classList.remove('sm-playing');});
-        if (ev.elements) ev.elements.forEach(function(g){if(g)g.forEach(function(e){e.classList.add('sm-playing');});});
+        // On retrouve, DANS LE SVG VISIBLE, les éléments réellement joués (identifiés
+        // dans le rendu audio caché) grâce aux classes abcjs déterministes (add_classes),
+        // puis on lit leur position RÉELLEMENT AFFICHÉE via getBBox() — fiable quelle
+        // que soit l'échelle CSS, contrairement à une conversion de coordonnées calculée.
+        var matched = [];
+        if (ev.elements) ev.elements.forEach(function(g){
+          if (!g) return;
+          g.forEach(function(e){
+            var m = findVisibleMatch(viewEl, e);
+            if (m) { m.classList.add('sm-playing'); matched.push(m); }
+          });
+        });
         var cursor = viewEl.querySelector('.sm-cursor-line');
+        if (cursor && matched.length) {
+          var minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity;
+          matched.forEach(function(m){
+            try {
+              var bb = m.getBBox();
+              minX=Math.min(minX,bb.x); maxX=Math.max(maxX,bb.x+bb.width);
+              minY=Math.min(minY,bb.y); maxY=Math.max(maxY,bb.y+bb.height);
+            } catch(e){}
+          });
+          if (isFinite(minX)) {
+            cursor.setAttribute('x1',minX); cursor.setAttribute('x2',minX);
+            cursor.setAttribute('y1',minY); cursor.setAttribute('y2',maxY);
+            return;
+          }
+        }
+        // Repli (aucune correspondance) : positionnement en pourcentage
         var d = el._audioDims;
         if (cursor && ev.left != null && d && d.w && d.h) {
           var xPct = ((ev.left-1) / d.w * 100) + '%';
@@ -5389,6 +5424,15 @@ function gsitesAbcForAudio(abc, bpm){ return abc.match(/^Q:/m) ? abc.replace(/^Q
 // responsive), sinon les attributs width/height numériques (rendu fixe).
 // Sert de référentiel pour convertir les coordonnées du curseur de lecture
 // en pourcentages, indépendamment de l'échelle CSS réellement affichée.
+// Retrouve, dans le SVG visible, l'élément correspondant à un élément du
+// rendu audio (caché), via les classes abcjs déterministes (add_classes) —
+// permet de lire sa position RÉELLEMENT AFFICHÉE plutôt que de la calculer.
+function gsitesFindVisibleMatch(viewEl, audioEl) {
+  if (!audioEl || !audioEl.classList) return null;
+  var cls = Array.prototype.filter.call(audioEl.classList, function(c){ return /^abcjs-/.test(c) && /\d/.test(c); });
+  if (!cls.length) return null;
+  try { return viewEl.querySelector('.' + cls.join('.')); } catch(e) { return null; }
+}
 function gsitesSvgNativeDims(svg) {
   if (!svg) return { w:0, h:0 };
   var vb = svg.viewBox && svg.viewBox.baseVal;
@@ -5436,15 +5480,40 @@ function gsitesInitSheet(el) {
         ['x1','x2','y1','y2'].forEach(function(a){ line.setAttributeNS(null,a,'0'); });
         svg.appendChild(line);
       }
-      // Dimensions natives du rendu AUDIO (référentiel des ev.left/top d'abcjs) :
-      // on convertira ensuite en pourcentages, qui se résolvent correctement
-      // quel que soit le référentiel réel du SVG visible (étiré en CSS).
+      // Repli si aucune correspondance d'éléments n'est trouvée (voir onEvent)
       el._audioDims = gsitesSvgNativeDims((el._audioHost || el._hidden).querySelector('svg'));
     },
     onEvent: function(ev){
       viewEl.querySelectorAll('.sm-playing').forEach(function(e){ e.classList.remove('sm-playing'); });
-      if (ev.elements) ev.elements.forEach(function(g){ if(g) g.forEach(function(e){ e.classList.add('sm-playing'); }); });
+      // On retrouve, DANS LE SVG VISIBLE, les éléments réellement joués (identifiés
+      // dans le rendu audio caché) grâce aux classes abcjs déterministes (add_classes),
+      // puis on lit leur position RÉELLEMENT AFFICHÉE via getBBox() — fiable quelle
+      // que soit l'échelle CSS, contrairement à une conversion de coordonnées calculée.
+      var matched = [];
+      if (ev.elements) ev.elements.forEach(function(g){
+        if (!g) return;
+        g.forEach(function(e){
+          var m = gsitesFindVisibleMatch(viewEl, e);
+          if (m) { m.classList.add('sm-playing'); matched.push(m); }
+        });
+      });
       var cursor = viewEl.querySelector('.sm-cursor-line');
+      if (cursor && matched.length) {
+        var minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity;
+        matched.forEach(function(m){
+          try {
+            var bb = m.getBBox();
+            minX=Math.min(minX,bb.x); maxX=Math.max(maxX,bb.x+bb.width);
+            minY=Math.min(minY,bb.y); maxY=Math.max(maxY,bb.y+bb.height);
+          } catch(e){}
+        });
+        if (isFinite(minX)) {
+          cursor.setAttribute('x1',minX); cursor.setAttribute('x2',minX);
+          cursor.setAttribute('y1',minY); cursor.setAttribute('y2',maxY);
+          return;
+        }
+      }
+      // Repli (aucune correspondance) : positionnement en pourcentage
       var d = el._audioDims;
       if (cursor && ev.left!=null && d && d.w && d.h) {
         var xPct = ((ev.left-1) / d.w * 100) + '%';
