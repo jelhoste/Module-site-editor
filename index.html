@@ -4802,6 +4802,24 @@ function generatePageHTML(page, pageIndex, title) {
     return s;
   }
 
+  // Calcule le facteur d'échelle entre deux SVG abcjs qui représentent la
+  // même partition rendue à des tailles différentes (rendu visible étiré en
+  // CSS vs rendu audio à taille fixe caché), pour convertir les coordonnées
+  // du curseur de lecture d'un référentiel vers l'autre.
+  function svgScaleFactor(visSvg, audSvg) {
+    if (!visSvg || !audSvg) return { x:1, y:1 };
+    function dims(svg) {
+      var vb = svg.viewBox && svg.viewBox.baseVal;
+      if (vb && vb.width) return { w: vb.width, h: vb.height };
+      var w = parseFloat(svg.getAttribute('width')) || svg.clientWidth || 1;
+      var h = parseFloat(svg.getAttribute('height')) || svg.clientHeight || 1;
+      return { w: w, h: h };
+    }
+    var v = dims(visSvg), a = dims(audSvg);
+    if (!a.w || !a.h) return { x:1, y:1 };
+    return { x: v.w / a.w, y: v.h / a.h };
+  }
+
   function initSheet(el) {
     var abc = el.dataset.abc || '';
     if (!abc || typeof ABCJS === 'undefined') return;
@@ -4854,14 +4872,21 @@ function generatePageHTML(page, pageIndex, title) {
           ['x1','x2','y1','y2'].forEach(function(a){line.setAttributeNS(null,a,'0');});
           svg.appendChild(line);
         }
+        // Le curseur reçoit des coordonnées dans le référentiel du rendu AUDIO
+        // (conteneur caché, taille fixe), à reconvertir vers le référentiel du
+        // rendu VISIBLE (étiré en CSS à 100% du conteneur) : on calcule le
+        // facteur d'échelle une fois au démarrage de la lecture.
+        el._cursorScale = svgScaleFactor(svg, (el._audioHost || el._hidden).querySelector('svg'));
       },
       onEvent: function(ev) {
         viewEl.querySelectorAll('.sm-playing').forEach(function(e){e.classList.remove('sm-playing');});
         if (ev.elements) ev.elements.forEach(function(g){if(g)g.forEach(function(e){e.classList.add('sm-playing');});});
         var cursor = viewEl.querySelector('.sm-cursor-line');
         if (cursor && ev.left != null) {
-          cursor.setAttribute('x1',ev.left-1); cursor.setAttribute('x2',ev.left-1);
-          cursor.setAttribute('y1',ev.top);    cursor.setAttribute('y2',ev.top+ev.height);
+          var s = el._cursorScale || {x:1,y:1};
+          var x = (ev.left-1) * s.x, y = ev.top * s.y, h = ev.height * s.y;
+          cursor.setAttribute('x1',x); cursor.setAttribute('x2',x);
+          cursor.setAttribute('y1',y); cursor.setAttribute('y2',y+h);
         }
       },
       onFinished: function() {
@@ -5364,6 +5389,23 @@ window.gsitesCarouselTabNav = gsitesCarouselTabNav;
 `;
   if (hasSheet) js += `
 function gsitesAbcForAudio(abc, bpm){ return abc.match(/^Q:/m) ? abc.replace(/^Q:.*$/m, 'Q:1/4=' + bpm) : abc.replace(/^(K:.*)$/m, 'Q:1/4=' + bpm + '\\n$1'); }
+// Calcule le facteur d'échelle entre deux SVG abcjs qui représentent la même
+// partition rendue à des tailles différentes (rendu visible étiré en CSS vs
+// rendu audio à taille fixe caché), pour convertir les coordonnées du
+// curseur de lecture d'un référentiel vers l'autre.
+function gsitesSvgScaleFactor(visSvg, audSvg) {
+  if (!visSvg || !audSvg) return { x:1, y:1 };
+  function dims(svg) {
+    var vb = svg.viewBox && svg.viewBox.baseVal;
+    if (vb && vb.width) return { w: vb.width, h: vb.height };
+    var w = parseFloat(svg.getAttribute('width')) || svg.clientWidth || 1;
+    var h = parseFloat(svg.getAttribute('height')) || svg.clientHeight || 1;
+    return { w: w, h: h };
+  }
+  var v = dims(visSvg), a = dims(audSvg);
+  if (!a.w || !a.h) return { x:1, y:1 };
+  return { x: v.w / a.w, y: v.h / a.h };
+}
 function gsitesInitSheet(el) {
   var abc = el.dataset.abc || '';
   if (!abc || typeof ABCJS === 'undefined') return;
@@ -5401,12 +5443,17 @@ function gsitesInitSheet(el) {
         ['x1','x2','y1','y2'].forEach(function(a){ line.setAttributeNS(null,a,'0'); });
         svg.appendChild(line);
       }
+      el._cursorScale = gsitesSvgScaleFactor(svg, (el._audioHost || el._hidden).querySelector('svg'));
     },
     onEvent: function(ev){
       viewEl.querySelectorAll('.sm-playing').forEach(function(e){ e.classList.remove('sm-playing'); });
       if (ev.elements) ev.elements.forEach(function(g){ if(g) g.forEach(function(e){ e.classList.add('sm-playing'); }); });
       var cursor = viewEl.querySelector('.sm-cursor-line');
-      if (cursor && ev.left!=null) { cursor.setAttribute('x1',ev.left-1); cursor.setAttribute('x2',ev.left-1); cursor.setAttribute('y1',ev.top); cursor.setAttribute('y2',ev.top+ev.height); }
+      if (cursor && ev.left!=null) {
+        var s = el._cursorScale || {x:1,y:1};
+        var x = (ev.left-1) * s.x, y = ev.top * s.y, h = ev.height * s.y;
+        cursor.setAttribute('x1',x); cursor.setAttribute('x2',x); cursor.setAttribute('y1',y); cursor.setAttribute('y2',y+h);
+      }
     },
     onFinished: function(){
       viewEl.querySelectorAll('.sm-playing').forEach(function(e){ e.classList.remove('sm-playing'); });
