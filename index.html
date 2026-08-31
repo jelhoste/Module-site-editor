@@ -263,7 +263,13 @@ input, textarea, select { font-family: var(--font-sans); }
   color: var(--c-on-surface-v); cursor: pointer;
   transition: background var(--transition);
   max-width: 200px;
+  position: relative; overflow: hidden;
 }
+.module-tab::after {
+  content: ''; position: absolute; left: 0; bottom: 0; height: 2px; width: 100%;
+  background: var(--c-primary); transform: scaleX(0); transform-origin: left;
+}
+.module-tab.pressing::after { transform: scaleX(1); transition: transform 450ms linear; }
 .module-tab:hover { background: var(--c-surface-2); }
 .module-tab.active { background: var(--c-primary-cont); color: var(--c-primary); }
 .module-tab .ms { font-size: 16px; flex-shrink: 0; }
@@ -594,6 +600,7 @@ input, textarea, select { font-family: var(--font-sans); }
   cursor:pointer; white-space:nowrap; transition:background 120ms;
 }
 .sm-action-btn:hover { background:var(--c-surface-2); }
+.sm-action-btn:disabled { opacity:.4; cursor:default; pointer-events:none; }
 /* Menu barline popup */
 .sm-bm-item {
   display: flex; align-items: center; gap: 8px; width: 100%;
@@ -1701,6 +1708,8 @@ input, textarea, select { font-family: var(--font-sans); }
           <span id="sm-repeat-count-val" style="font-size:13px;font-weight:700;min-width:18px;text-align:center">2</span>
           <button class="sm-action-btn" style="width:26px;padding:0" onclick="smStepRepeatCount(+1)">+</button>
         </div>
+        <button class="sm-action-btn" id="sm-undo-btn" onclick="smUndo()" title="Annuler (Ctrl+Z)" disabled>↶ Annuler</button>
+        <button class="sm-action-btn" id="sm-redo-btn" onclick="smRedo()" title="Rétablir (Ctrl+Maj+Z)" disabled>↷ Rétablir</button>
         <button class="sm-action-btn" onclick="smDeleteLast()">⌫ Supprimer</button>
         <button class="sm-action-btn" onclick="smClearAll()">🗑 Tout effacer</button>
         <button class="sm-action-btn" onclick="smToggleAbcEditor()" id="sm-abc-toggle-btn" title="Éditer le texte ABC directement">✎ ABC</button>
@@ -2007,12 +2016,46 @@ function renderModuleTabs() {
       <button class="module-tab-dup" title="Dupliquer"><span class="ms">content_copy</span></button>
       <button class="module-tab-close" title="Supprimer"><span class="ms">close</span></button>
     `;
-    div.onclick = () => switchModule(idx);
+    // Changer d'onglet nécessite un appui long (empêche de perdre le
+    // contexte d'édition en cours suite à un clic accidentel/rapide) —
+    // un simple clic ne fait rien. Exclu sur les boutons dupliquer/
+    // supprimer et pendant un renommage en cours (label éditable).
+    const labelEl = div.querySelector('.module-tab-label');
+    let pressTimer = null, pressStart = null;
+    const cancelPress = () => {
+      if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; }
+      pressStart = null;
+      div.classList.remove('pressing');
+    };
+    const startPress = (e) => {
+      if (e.target.closest('.module-tab-dup') || e.target.closest('.module-tab-close')) return;
+      if (labelEl.isContentEditable) return;
+      const p = e.touches ? e.touches[0] : e;
+      pressStart = { x: p.clientX, y: p.clientY };
+      div.classList.add('pressing');
+      pressTimer = setTimeout(() => {
+        pressTimer = null;
+        div.classList.remove('pressing');
+        switchModule(idx);
+      }, 450);
+    };
+    const movePress = (e) => {
+      if (!pressTimer || !pressStart) return;
+      const p = e.touches ? e.touches[0] : e;
+      if (Math.abs(p.clientX - pressStart.x) > 8 || Math.abs(p.clientY - pressStart.y) > 8) cancelPress();
+    };
+    div.addEventListener('mousedown', startPress);
+    div.addEventListener('touchstart', startPress, { passive: true });
+    div.addEventListener('mousemove', movePress);
+    div.addEventListener('touchmove', movePress, { passive: true });
+    ['mouseup', 'mouseleave', 'touchend', 'touchcancel'].forEach(evt =>
+      div.addEventListener(evt, cancelPress)
+    );
     div.querySelector('.module-tab-dup').onclick = (e) => { e.stopPropagation(); duplicateModuleTab(idx); };
     div.querySelector('.module-tab-close').onclick = (e) => { e.stopPropagation(); deleteModuleTab(idx); };
-    const labelEl = div.querySelector('.module-tab-label');
     div.ondblclick = (e) => {
       e.stopPropagation();
+      cancelPress();
       labelEl.contentEditable = 'true';
       labelEl.focus();
       const sel = window.getSelection();
@@ -5077,6 +5120,7 @@ const SM = {
   noteCharMap: {},
   synthCtrl: null,
   drumMods: { oh: false, crash: false, hhf: false },
+  undoStack: [], redoStack: [],
 };
 
 const SM_MODES = [
@@ -5115,6 +5159,7 @@ function smOpenEditor(modId) {
     SM.noteCharMap = {};
     SM.lastVisualObj = null;
     SM.drumMods = { oh:false, crash:false, hhf:false };
+    SM.undoStack = []; SM.redoStack = [];
 
     // Conserver l'ABC existant pour le re-charger dans smRenderEditorStaff
     SM._preloadedAbc = data?.abc || null;
@@ -5138,6 +5183,7 @@ function smOpenEditor(modId) {
     setTimeout(() => {
       smInitSynth();
       smRenderEditorStaff();
+      smUpdateUndoRedoButtons();
     }, 80);
   });
 }
@@ -5523,7 +5569,53 @@ function smToggleDrumMod(mod, btn) {
   smRenderEditorStaff();
 }
 
+// ── Annuler / Rétablir ──────────────────────────────────────
+// Historique limité aux arrangements de notes structurées (le mode
+// édition ABC brut, plus rare, n'est pas couvert par cet historique).
+const SM_UNDO_MAX = 50;
+function smSnapshotNotes() {
+  return {
+    notes:         JSON.parse(JSON.stringify(SM.state.notes)),
+    notesV2melody: JSON.parse(JSON.stringify(SM.state.notesV2melody)),
+    notesV1:       JSON.parse(JSON.stringify(SM.state.notesV1)),
+    notesV2:       JSON.parse(JSON.stringify(SM.state.notesV2)),
+  };
+}
+// À appeler AVANT toute mutation des tableaux de notes.
+function smPushUndo() {
+  SM.undoStack.push(smSnapshotNotes());
+  if (SM.undoStack.length > SM_UNDO_MAX) SM.undoStack.shift();
+  SM.redoStack = [];
+  smUpdateUndoRedoButtons();
+}
+function smRestoreSnapshot(snap) {
+  SM.state.notes         = snap.notes;
+  SM.state.notesV2melody = snap.notesV2melody;
+  SM.state.notesV1       = snap.notesV1;
+  SM.state.notesV2       = snap.notesV2;
+  SM.state.selectedNote  = null;
+  smShowRepeatCountRow(false);
+  smRenderEditorStaff();
+  smUpdateUndoRedoButtons();
+}
+function smUndo() {
+  if (!SM.undoStack.length) return;
+  SM.redoStack.push(smSnapshotNotes());
+  smRestoreSnapshot(SM.undoStack.pop());
+}
+function smRedo() {
+  if (!SM.redoStack.length) return;
+  SM.undoStack.push(smSnapshotNotes());
+  smRestoreSnapshot(SM.redoStack.pop());
+}
+function smUpdateUndoRedoButtons() {
+  const u = document.getElementById('sm-undo-btn'), r = document.getElementById('sm-redo-btn');
+  if (u) u.disabled = !SM.undoStack.length;
+  if (r) r.disabled = !SM.redoStack.length;
+}
+
 function smAddNote(pitch, octaveOverride) {
+  smPushUndo();
   const st = SM.state;
   const target = st.activeVoice === 2 ? st.notesV2melody : st.notes;
   target.push({ pitch, octave: octaveOverride !== undefined ? octaveOverride : st.currentOctave,
@@ -5538,6 +5630,7 @@ function smAddNote(pitch, octaveOverride) {
   smRenderEditorStaff();
 }
 function smAddRest() {
+  smPushUndo();
   const target = SM.state.activeVoice === 2 ? SM.state.notesV2melody : SM.state.notes;
   target.push({ pitch:'z', octave:4, duration:SM.state.selectedDuration, alteration:'', rest:true });
   smRenderEditorStaff();
@@ -5567,6 +5660,7 @@ function smAddBarlineType(barType) {
 
 function smAddBarline(barType, repeatCount) {
   barType = barType || '|';
+  smPushUndo();
   const isDrums = smGetMode().id === 'drums';
   const v1 = isDrums ? SM.state.notesV1 : SM.state.notes;
   const v2 = isDrums ? SM.state.notesV2 : SM.state.notesV2melody;
@@ -5723,6 +5817,7 @@ function smStepRepeatCount(delta) {
   const arr = isDrums ? (voice===1?SM.state.notesV1:SM.state.notesV2) : (voice===2?SM.state.notesV2melody:SM.state.notes);
   const n = arr[index];
   if (!n || !n.barline || n.barType !== ':|') return;
+  smPushUndo();
   n.repeatCount = Math.max(2, Math.min(8, (n.repeatCount || 2) + delta));
   // Synchroniser l'autre voix
   const arr2 = isDrums ? (voice===1?SM.state.notesV2:SM.state.notesV1) : (voice===2?SM.state.notes:SM.state.notesV2melody);
@@ -5749,6 +5844,7 @@ function smShowRepeatCountRow(show, count) {
 }
 function smDeleteLast() {
   const isDrums = smGetMode().id === 'drums';
+  smPushUndo();
   if (SM.state.selectedNote) {
     const { voice, index } = SM.state.selectedNote;
     const arr = isDrums ? (voice===1?SM.state.notesV1:SM.state.notesV2) : (voice===2?SM.state.notesV2melody:SM.state.notes);
@@ -5769,6 +5865,8 @@ function smDeleteLast() {
   smRenderEditorStaff();
 }
 function smClearAll() {
+  if (!SM.state.notes.length && !SM.state.notesV2melody.length && !SM.state.notesV1.length && !SM.state.notesV2.length) return;
+  smPushUndo();
   SM.state.notes=[]; SM.state.notesV2melody=[]; SM.state.notesV1=[]; SM.state.notesV2=[];
   smRenderEditorStaff();
 }
@@ -5777,6 +5875,7 @@ function smClearAll() {
 function smAddDrumNote(inst) {
   const abcPitch = SM_DRUM_NOTES[inst];
   if (!abcPitch) return;
+  smPushUndo();
   const note = { pitch:abcPitch, duration:SM.state.selectedDuration, rest:false, dotted:SM.state.dotted, tie:SM.state.tie };
   if (SM_CYMBAL_INSTS.includes(inst)) { SM.state.notesV1.push(note); SM.state.lastDrumVoice=1; }
   else { SM.state.notesV2.push(note); SM.state.lastDrumVoice=2; }
@@ -5943,6 +6042,7 @@ function smHighlightByCharPos(targetCharPos) {
 }
 function smApplyToSelected(fn) {
   if (!SM.state.selectedNote) return;
+  smPushUndo();
   const { voice, index } = SM.state.selectedNote;
   const isDrums = smGetMode().id === 'drums';
   const arr = isDrums ? (voice===1?SM.state.notesV1:SM.state.notesV2) : (voice===2?SM.state.notesV2melody:SM.state.notes);
@@ -6241,6 +6341,17 @@ function smInitAltLongPress() {
 // ── Init module au chargement de la page ──────────────────
 document.addEventListener('DOMContentLoaded', () => {
   smInitAltLongPress();
+  // Annuler / rétablir (Ctrl+Z / Ctrl+Maj+Z) — actif seulement quand l'éditeur
+  // de partition est ouvert, et pas pendant une saisie de texte (pour ne pas
+  // interférer avec l'annulation native du navigateur dans un champ).
+  document.addEventListener('keydown', e => {
+    if (!(e.ctrlKey || e.metaKey) || e.key.toLowerCase() !== 'z') return;
+    if (!document.getElementById('modal-sheet')?.classList.contains('open')) return;
+    const t = document.activeElement;
+    if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+    e.preventDefault();
+    if (e.shiftKey) smRedo(); else smUndo();
+  });
   // Hide-on-scroll navbar logic
   initHideOnScrollNavbars();
   // Observer les modules sheet ajoutés au DOM
